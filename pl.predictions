@@ -1,0 +1,2295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="PL Predictions" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>Premier League 2026–27 Prediction League</title>
+  <style>
+    :root {
+      --bg: #07152f;
+      --panel: #10234a;
+      --panel-2: #162d5b;
+      --accent: #00ff87;
+      --accent-2: #04f5ff;
+      --text: #f7f9ff;
+      --muted: #aebbd8;
+      --danger: #ff4d6d;
+      --warning: #ffd166;
+      --border: rgba(255,255,255,.12);
+      --shadow: 0 18px 45px rgba(0,0,0,.28);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(4,245,255,.14), transparent 28%),
+        radial-gradient(circle at top left, rgba(0,255,135,.12), transparent 30%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    button, input, select {
+      font: inherit;
+      font-size: 16px; /* Prevents iOS zooming when an input is tapped */
+      -webkit-appearance: none;
+      appearance: none;
+      touch-action: manipulation;
+    }
+
+    input, select, button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    input {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    header {
+      padding: 28px 20px 20px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(7,21,47,.82);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-inner, main {
+      width: min(1400px, calc(100% - 28px));
+      margin: 0 auto;
+    }
+
+    .title-row {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.55rem, 4vw, 2.55rem);
+      letter-spacing: -.04em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 7px 0 0;
+    }
+
+    .score-rules {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .pill {
+      background: rgba(255,255,255,.08);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 9px 13px;
+      font-weight: 700;
+      font-size: .9rem;
+    }
+
+    .pill strong { color: var(--accent); }
+    .pill.user-pill { color: var(--accent-2); border-color: rgba(4,245,255,.4); }
+
+    nav {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .tab {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      padding: 10px 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: .2s ease;
+    }
+
+    .tab.active {
+      color: #041127;
+      background: var(--accent);
+      border-color: var(--accent);
+      font-weight: 800;
+    }
+
+    main { padding: 24px 0 60px; }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 18px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(22,45,91,.95), rgba(16,35,74,.95));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .card h2, .card h3 { margin-top: 0; }
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-7 { grid-column: span 7; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255,255,255,.045);
+    }
+
+    .stat-label { color: var(--muted); font-size: .82rem; }
+    .stat-value { font-size: 1.65rem; font-weight: 900; margin-top: 5px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,.035); }
+
+    .rank {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: inline-grid;
+      place-items: center;
+      font-weight: 900;
+      background: rgba(255,255,255,.08);
+    }
+
+    .rank-1 { background: linear-gradient(135deg, #ffd166, #ffb703); color: #251500; }
+    .rank-2 { background: #c9d3df; color: #172033; }
+    .rank-3 { background: #c7794a; color: #25140b; }
+
+    .player-name { font-weight: 800; }
+    .player-name.is-you::after {
+      content: "you";
+      margin-left: 8px;
+      font-size: .68rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #041127;
+      background: var(--accent-2);
+      padding: 2px 7px;
+      border-radius: 999px;
+      vertical-align: middle;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: .85rem;
+      font-weight: 700;
+    }
+
+    input, select {
+      background: #081a3b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 11px;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(4,245,255,.12);
+    }
+
+    input:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    input[type="number"] { width: 74px; }
+
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 850;
+      cursor: pointer;
+      transition: transform .15s ease, opacity .15s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--accent); color: #031629; }
+    .btn-secondary { background: var(--accent-2); color: #031629; }
+    .btn-muted { background: rgba(255,255,255,.09); color: var(--text); border: 1px solid var(--border); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-sm { padding: 7px 10px; font-size: .78rem; }
+
+    .fixture-list { display: grid; gap: 14px; }
+
+    .fixture-compact-list {
+      display: grid;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .fixture-row {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.025);
+    }
+
+    .fixture-row:last-child { border-bottom: none; }
+    .fixture-row:nth-child(even) { background: rgba(255,255,255,.045); }
+
+    .fixture-row-main {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) auto auto auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .fixture-row .match-teams {
+      font-weight: 800;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .team-badge {
+      vertical-align: middle;
+      margin: 0 4px;
+      object-fit: contain;
+      position: relative;
+      top: -1px;
+    }
+
+    .fixture-row .actual-display {
+      min-width: 56px;
+      text-align: center;
+      font-weight: 900;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .fixture-row .actual-display.is-final { color: var(--text); }
+
+    .fixture-row .row-inputs {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .fixture-row .row-inputs input { width: 50px; text-align: center; }
+
+    .fixture-row .row-points {
+      min-width: 64px;
+      text-align: center;
+      border-radius: 999px;
+      padding: 6px 8px;
+      font-size: .76rem;
+      font-weight: 900;
+      background: rgba(255,255,255,.07);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .fixture-row .row-delete {
+      padding: 6px 9px;
+      font-size: .74rem;
+    }
+
+    .fixture-row-reveal {
+      margin-top: 9px;
+      padding-top: 9px;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+    }
+
+    .fixture-row-reveal .rp-chip {
+      background: rgba(255,255,255,.06);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: .78rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .fixture-row-reveal .rp-chip.is-you {
+      color: #041127;
+      background: var(--accent-2);
+      font-weight: 800;
+    }
+
+    .fixture-row-locked {
+      margin-top: 9px;
+      padding-top: 9px;
+      border-top: 1px dashed var(--border);
+      font-size: .78rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 640px) {
+      .fixture-row-main { grid-template-columns: 1fr auto; row-gap: 8px; }
+      .fixture-row .match-teams { grid-column: 1 / -1; white-space: normal; }
+    }
+
+    .fixture {
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      overflow: hidden;
+      background: rgba(255,255,255,.035);
+    }
+
+    .fixture-head {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      background: rgba(255,255,255,.045);
+    }
+
+    .team { font-weight: 900; }
+    .team.away { text-align: right; }
+
+    .actual-score {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+
+    .actual-score input {
+      width: 58px;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 900;
+    }
+
+    .predictions {
+      padding: 12px 16px 16px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .prediction-row {
+      display: grid;
+      grid-template-columns: minmax(100px, 1fr) auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .prediction-row.own-row {
+      background: rgba(0,255,135,.06);
+      border-radius: 10px;
+      margin: 0 -8px;
+      padding: 6px 8px;
+    }
+
+    .prediction-inputs {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .prediction-inputs input {
+      width: 54px;
+      text-align: center;
+    }
+
+    .points-badge {
+      min-width: 72px;
+      text-align: center;
+      border-radius: 999px;
+      padding: 7px 9px;
+      font-size: .8rem;
+      font-weight: 900;
+      background: rgba(255,255,255,.07);
+      color: var(--muted);
+    }
+
+    .points-30 { background: rgba(0,255,135,.16); color: var(--accent); }
+    .points-10 { background: rgba(255,209,102,.16); color: var(--warning); }
+
+    .winner-card {
+      border-left: 5px solid var(--accent);
+      padding-left: 16px;
+    }
+
+    .winner-name {
+      font-size: 1.45rem;
+      font-weight: 950;
+      color: var(--accent);
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 24px;
+      text-align: center;
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+    }
+
+    .mini-note {
+      color: var(--muted);
+      font-size: .86rem;
+      line-height: 1.5;
+    }
+
+    .name-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+      gap: 10px;
+    }
+
+    .name-grid .name-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+      background: rgba(255,255,255,.03);
+    }
+
+    .name-card .row-btns { display: flex; gap: 7px; flex-wrap: wrap; }
+
+    .danger-zone {
+      border-color: rgba(255,77,109,.35);
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      padding: 12px 16px;
+      border-radius: 11px;
+      background: #f7f9ff;
+      color: #07152f;
+      font-weight: 850;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: .25s ease;
+      z-index: 20;
+      max-width: min(320px, calc(100vw - 36px));
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ---- Login screen ---- */
+    #loginScreen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .login-card {
+      width: min(440px, 100%);
+      background: linear-gradient(180deg, rgba(22,45,91,.97), rgba(16,35,74,.97));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 28px 24px;
+    }
+
+    .login-card h1 {
+      font-size: 1.5rem;
+      margin-bottom: 4px;
+    }
+
+    .login-card .subtitle { margin-bottom: 20px; }
+
+    #loginPlayerList {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .login-player-btn {
+      padding: 14px 10px;
+      font-size: 1rem;
+    }
+
+    #loginAddPlayerBtn { width: 100%; margin-top: 4px; }
+
+    #loginPinForm {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      display: grid;
+      gap: 10px;
+    }
+
+    #loginPinForm input { text-align: center; letter-spacing: .3em; font-weight: 900; }
+
+    .login-error {
+      color: var(--danger);
+      font-size: .85rem;
+      font-weight: 700;
+      min-height: 1.1em;
+    }
+
+    .login-loading { text-align: center; color: var(--muted); padding: 40px 0; }
+
+    @media (max-width: 1000px) {
+      .span-4, .span-5, .span-7, .span-8 { grid-column: span 12; }
+      .stat-grid { grid-template-columns: repeat(2,1fr); }
+      .name-grid { grid-template-columns: repeat(2,1fr); }
+    }
+
+    @media (max-width: 640px) {
+      .header-inner, main { width: min(100% - 18px, 1400px); }
+      header { padding: 18px 10px 14px; }
+      .card { padding: 14px; border-radius: 14px; }
+      .fixture-head { grid-template-columns: 1fr; text-align: center; }
+      .team.away { text-align: center; }
+      .prediction-row { grid-template-columns: 1fr auto; }
+      .points-badge { grid-column: 1 / -1; justify-self: stretch; }
+      .name-grid { grid-template-columns: 1fr; }
+      .stat-grid { grid-template-columns: 1fr 1fr; }
+      th, td { padding: 10px 6px; }
+      .hide-mobile { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loginScreen" style="display:none">
+  <div class="login-card">
+    <h1>Premier League Prediction League</h1>
+    <p class="subtitle">Pick your name to see the league and enter your predictions.</p>
+    <div id="loginLoading" class="login-loading">Loading league…</div>
+    <div id="loginBody" style="display:none">
+      <div id="loginPlayerList"></div>
+      <button class="btn btn-secondary" id="loginAddPlayerBtn" type="button">+ Add a new player</button>
+      <div id="loginPinForm" style="display:none">
+        <label id="loginPinLabel" for="pinInput">Enter your PIN</label>
+        <input id="pinInput" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="••••" maxlength="8">
+        <div class="login-error" id="loginError"></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" id="pinContinueBtn" type="button" style="flex:1">Continue</button>
+          <button class="btn btn-muted" id="pinCancelBtn" type="button">Back</button>
+        </div>
+      </div>
+      <p class="mini-note" style="margin-top:16px">This PIN is just a lightweight gate for friends — it isn't secure encryption, so don't reuse a real password.</p>
+    </div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+<header>
+  <div class="header-inner">
+    <div class="title-row">
+      <div>
+        <h1>Premier League 2026–27 Prediction League</h1>
+        <p class="subtitle">Five players. Thirty points for an exact score. Ten points for the correct result.</p>
+      </div>
+      <div class="score-rules">
+        <div class="pill">Scoring: exact score = <strong>30 pts</strong></div>
+        <div class="pill">Scoring: correct result = <strong>10 pts</strong></div>
+        <div class="pill user-pill" id="currentUserPill">—</div>
+        <button class="btn btn-muted btn-sm" id="refreshBtn" type="button">↻ Refresh</button>
+        <button class="btn btn-muted btn-sm" id="logoutBtn" type="button">Log out</button>
+      </div>
+    </div>
+    <nav>
+      <button class="tab active" data-view="dashboard">Dashboard</button>
+      <button class="tab" data-view="predictions">Predictions</button>
+      <button class="tab" data-view="results">Results</button>
+      <button class="tab" data-view="allGuesses">All Guesses</button>
+      <button class="tab" data-view="gameweeks">Gameweek Winners</button>
+      <button class="tab" data-view="setup">Setup</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="card" style="margin-bottom:18px;border-left:5px solid var(--accent-2)">
+    <strong>This league syncs over the cloud:</strong>
+    Everyone connected with the same league code sees the same predictions and results, wherever they open this file.
+    Since there's no live push, tap <strong>↻ Refresh</strong> any time to pull the latest — for example, right after
+    someone else says they've saved a prediction or entered a result.
+  </div>
+  <noscript>
+    <div class="card" style="margin-bottom:18px;border-left:5px solid var(--danger)">
+      JavaScript is disabled in this browser. Enable it to enter predictions.
+    </div>
+  </noscript>
+  <div class="card" id="storageWarningCard" style="display:none;margin-bottom:18px;border-left:5px solid var(--danger)">
+    <strong>Heads up:</strong> this browser's local storage isn't available right now (this can happen in
+    private/incognito windows, or if storage is disabled). Predictions you enter won't be saved once you close this
+    tab — use Export before you leave.
+  </div>
+  <script>
+    (function () {
+      try {
+        var testKey = "__storage_test__";
+        localStorage.setItem(testKey, "1");
+        localStorage.removeItem(testKey);
+      } catch (e) {
+        document.getElementById("storageWarningCard").style.display = "block";
+      }
+    })();
+  </script>
+  <section id="dashboard" class="view active">
+    <div class="grid">
+      <div class="card span-12">
+        <div class="stat-grid">
+          <div class="stat"><div class="stat-label">Current leader</div><div class="stat-value" id="statLeader">—</div></div>
+          <div class="stat"><div class="stat-label">Leader points</div><div class="stat-value" id="statLeaderPoints">0</div></div>
+          <div class="stat"><div class="stat-label">Completed matches</div><div class="stat-value" id="statCompleted">0</div></div>
+          <div class="stat"><div class="stat-label">Current gameweek</div><div class="stat-value" id="statGameweek">1</div></div>
+        </div>
+      </div>
+
+      <div class="card span-8">
+        <h2>Overall Leaderboard</h2>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th>Player</th>
+                <th>Points</th>
+                <th class="hide-mobile">Exact scores</th>
+                <th>Exact score rate</th>
+                <th class="hide-mobile">Correct results</th>
+                <th>Correct result %</th>
+                <th>GW wins</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card span-4">
+        <h2>Latest Gameweek Winner</h2>
+        <div id="latestWinner" class="empty">Enter match results to calculate a winner.</div>
+      </div>
+
+      <div class="card span-12">
+        <h2>Prediction Accuracy</h2>
+        <p class="mini-note">Percentages are based only on matches where the player entered a prediction and the actual result has been recorded.</p>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Predictions scored</th>
+                <th>Exact scores</th>
+                <th>Exact score rate</th>
+                <th>Correct outcomes</th>
+                <th>Correct result percentage</th>
+              </tr>
+            </thead>
+            <tbody id="accuracyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="predictions" class="view">
+    <div class="card">
+      <div class="controls">
+        <label>
+          Select gameweek
+          <select id="gameweekSelect"></select>
+        </label>
+      </div>
+      <p class="mini-note"><strong>How to enter a prediction:</strong> fill in the boxes on your row for as many fixtures as you like, then press Save changes at the bottom. Once you've saved a prediction for a fixture, everyone else's guess for that fixture appears too — so you can't see theirs until you've committed to yours. Jason enters actual results once matches are played.</p>
+      <div id="fixtureContainer" class="fixture-compact-list"></div>
+      <button class="btn btn-primary" id="saveAllBtn" style="margin-top:16px;width:100%">Save changes</button>
+    </div>
+  </section>
+
+  <section id="results" class="view">
+    <div class="card">
+      <div class="controls">
+        <label>
+          Select gameweek
+          <select id="resultsGwSelect"></select>
+        </label>
+        <button class="btn btn-muted" id="clearGwResultsBtn">Clear actual results</button>
+      </div>
+      <p class="mini-note">Fill in scores for as many matches as you like, then press Save results at the bottom. This updates everyone's points automatically once saved.</p>
+      <div id="resultsEntryContainer" class="fixture-compact-list"></div>
+      <button class="btn btn-primary" id="saveResultsBtn" style="margin-top:16px;width:100%">Save results</button>
+    </div>
+  </section>
+
+  <section id="allGuesses" class="view">
+    <div class="card">
+      <div class="controls">
+        <label>
+          Select gameweek
+          <select id="allGuessesGwSelect"></select>
+        </label>
+      </div>
+      <p class="mini-note">Shows every player's guess for each fixture. A fixture only appears here once you've saved your own prediction for it — this keeps things fair, since your guesses stay hidden from others until you've committed to them too.</p>
+      <div style="overflow-x:auto">
+        <table id="allGuessesTable">
+          <thead id="allGuessesHead"></thead>
+          <tbody id="allGuessesBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="gameweeks" class="view">
+    <div class="card">
+      <h2>Gameweek Winners</h2>
+      <p class="mini-note">A gameweek winner is the player with the most points from completed matches in that gameweek. Tied players share the win.</p>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Gameweek</th>
+              <th>Winner</th>
+              <th>Points</th>
+              <th>Completed matches</th>
+            </tr>
+          </thead>
+          <tbody id="gameweekWinnersBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="setup" class="view">
+    <div class="grid">
+      <div class="card span-12" style="border-left:5px solid var(--accent-2)">
+        <h2>League Code</h2>
+        <p class="mini-note">Share this code with everyone else so they can connect to the same league. They'll paste it into the "Join this league" box the first time they open the file.</p>
+        <div class="controls">
+          <input id="leagueCodeDisplay" type="text" readonly style="flex:1;min-width:220px;font-weight:800">
+          <button class="btn btn-secondary" id="copyLeagueCodeBtn" type="button">Copy code</button>
+        </div>
+      </div>
+
+      <div class="card span-12">
+        <h2>Players</h2>
+        <div id="playerNameInputs" class="name-grid"></div>
+        <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="saveNamesBtn">Save player names</button>
+          <button class="btn btn-secondary" id="addPlayerBtn">Add another player</button>
+        </div>
+      </div>
+
+      <div class="card span-7">
+        <h2>Add Fixture</h2>
+        <div class="controls">
+          <label>Gameweek <input id="newFixtureGw" type="number" min="1" max="38" value="1"></label>
+          <label>Home team <input id="newHomeTeam" type="text" placeholder="e.g. Arsenal"></label>
+          <label>Away team <input id="newAwayTeam" type="text" placeholder="e.g. Chelsea"></label>
+          <button class="btn btn-secondary" id="addFixtureBtn">Add fixture</button>
+        </div>
+        <p class="mini-note">Add the official fixtures gameweek by gameweek. This is saved to this browser, so anyone using this laptop will see the same fixtures, predictions and results.</p>
+      </div>
+
+      <div class="card span-5">
+        <h2>Fixture Summary</h2>
+        <div id="fixtureSummary"></div>
+      </div>
+
+      <div class="card span-12 danger-zone">
+        <h2>Data Tools</h2>
+        <p class="mini-note">Export now and then as an offline backup — this data lives in the cloud, so losing your league code would mean losing access.</p>
+        <div class="controls">
+          <button class="btn btn-muted" id="exportBtn">Export data</button>
+          <label>
+            Import data
+            <input id="importFile" type="file" accept=".json">
+          </label>
+          <button class="btn btn-danger" id="resetBtn">Reset everything</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+
+<div class="toast" id="toast">Saved</div>
+
+<script>
+
+  // Team crest badges — hotlinked from a public logo CDN, keyed by the exact
+  // team name strings used in the fixture list.
+  const TEAM_BADGE_SLUGS = {
+    "Arsenal": "arsenal",
+    "Aston Villa": "aston-villa",
+    "AFC Bournemouth": "afc-bournemouth",
+    "Brentford": "brentford",
+    "Brighton & Hove Albion": "brighton-and-hove-albion",
+    "Chelsea": "chelsea",
+    "Coventry City": "coventry-city",
+    "Crystal Palace": "crystal-palace",
+    "Everton": "everton",
+    "Fulham": "fulham",
+    "Hull City": "hull-city",
+    "Ipswich Town": "ipswich-town",
+    "Leeds United": "leeds-united",
+    "Liverpool": "liverpool-fc",
+    "Manchester City": "manchester-city",
+    "Manchester United": "manchester-united",
+    "Newcastle United": "newcastle-united",
+    "Nottingham Forest": "nottingham-forest",
+    "Sunderland": "sunderland",
+    "Tottenham Hotspur": "tottenham-hotspur"
+  };
+
+  function badgeImg(teamName, size) {
+    const slug = TEAM_BADGE_SLUGS[teamName];
+    if (!slug) return "";
+    const url = `https://assets.footylogos.com/previews/${slug}/${slug}-logo-footylogos-320.webp`;
+    return `<img src="${url}" alt="" class="team-badge" width="${size || 20}" height="${size || 20}" loading="lazy" onerror="this.style.visibility='hidden'">`;
+  }
+
+  function makeId() {
+    return "fixture-" + new Date().getTime() + "-" + Math.random().toString(16).slice(2);
+  }
+
+  function cloneData(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  const defaultState = {
+    players: [
+      { name: "Jason", pin: "" },
+      { name: "Sam", pin: "" },
+      { name: "Keith", pin: "" },
+      { name: "Paul", pin: "" },
+      { name: "Sean", pin: "" }
+    ],
+    fixtures: [
+      { id: 'fixture-preset-1-1', gw: 1, home: 'Arsenal', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-1-2', gw: 1, home: 'Hull City', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-1-3', gw: 1, home: 'Everton', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-1-4', gw: 1, home: 'Ipswich Town', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-1-5', gw: 1, home: 'Nottingham Forest', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-1-6', gw: 1, home: 'Brentford', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-1-7', gw: 1, home: 'Brighton & Hove Albion', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-1-8', gw: 1, home: 'Manchester City', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-1-9', gw: 1, home: 'Newcastle United', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-1-10', gw: 1, home: 'Fulham', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-2-11', gw: 2, home: 'Crystal Palace', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-2-12', gw: 2, home: 'Liverpool', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-2-13', gw: 2, home: 'AFC Bournemouth', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-2-14', gw: 2, home: 'Coventry City', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-2-15', gw: 2, home: 'Tottenham Hotspur', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-2-16', gw: 2, home: 'Chelsea', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-2-17', gw: 2, home: 'Leeds United', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-2-18', gw: 2, home: 'Sunderland', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-2-19', gw: 2, home: 'Manchester United', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-2-20', gw: 2, home: 'Aston Villa', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-3-21', gw: 3, home: 'Ipswich Town', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-3-22', gw: 3, home: 'Newcastle United', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-3-23', gw: 3, home: 'Brentford', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-3-24', gw: 3, home: 'Brighton & Hove Albion', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-3-25', gw: 3, home: 'Fulham', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-3-26', gw: 3, home: 'Manchester City', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-3-27', gw: 3, home: 'Nottingham Forest', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-3-28', gw: 3, home: 'Hull City', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-3-29', gw: 3, home: 'Everton', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-3-30', gw: 3, home: 'Arsenal', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-4-31', gw: 4, home: 'AFC Bournemouth', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-4-32', gw: 4, home: 'Aston Villa', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-4-33', gw: 4, home: 'Chelsea', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-4-34', gw: 4, home: 'Crystal Palace', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-4-35', gw: 4, home: 'Liverpool', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-4-36', gw: 4, home: 'Tottenham Hotspur', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-4-37', gw: 4, home: 'Sunderland', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-4-38', gw: 4, home: 'Coventry City', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-4-39', gw: 4, home: 'Manchester United', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-4-40', gw: 4, home: 'Leeds United', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-5-41', gw: 5, home: 'Brentford', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-5-42', gw: 5, home: 'Tottenham Hotspur', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-5-43', gw: 5, home: 'Brighton & Hove Albion', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-5-44', gw: 5, home: 'Everton', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-5-45', gw: 5, home: 'Leeds United', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-5-46', gw: 5, home: 'Manchester City', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-5-47', gw: 5, home: 'Newcastle United', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-5-48', gw: 5, home: 'Nottingham Forest', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-5-49', gw: 5, home: 'AFC Bournemouth', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-5-50', gw: 5, home: 'Fulham', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-6-51', gw: 6, home: 'Arsenal', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-6-52', gw: 6, home: 'Aston Villa', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-6-53', gw: 6, home: 'Chelsea', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-6-54', gw: 6, home: 'Coventry City', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-6-55', gw: 6, home: 'Crystal Palace', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-6-56', gw: 6, home: 'Hull City', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-6-57', gw: 6, home: 'Ipswich Town', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-6-58', gw: 6, home: 'Liverpool', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-6-59', gw: 6, home: 'Manchester United', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-6-60', gw: 6, home: 'Sunderland', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-7-61', gw: 7, home: 'AFC Bournemouth', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-7-62', gw: 7, home: 'Brentford', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-7-63', gw: 7, home: 'Brighton & Hove Albion', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-7-64', gw: 7, home: 'Everton', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-7-65', gw: 7, home: 'Fulham', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-7-66', gw: 7, home: 'Leeds United', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-7-67', gw: 7, home: 'Manchester City', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-7-68', gw: 7, home: 'Newcastle United', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-7-69', gw: 7, home: 'Nottingham Forest', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-7-70', gw: 7, home: 'Tottenham Hotspur', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-8-71', gw: 8, home: 'Arsenal', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-8-72', gw: 8, home: 'Aston Villa', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-8-73', gw: 8, home: 'Chelsea', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-8-74', gw: 8, home: 'Coventry City', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-8-75', gw: 8, home: 'Crystal Palace', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-8-76', gw: 8, home: 'Hull City', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-8-77', gw: 8, home: 'Ipswich Town', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-8-78', gw: 8, home: 'Liverpool', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-8-79', gw: 8, home: 'Manchester United', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-8-80', gw: 8, home: 'Sunderland', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-9-81', gw: 9, home: 'AFC Bournemouth', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-9-82', gw: 9, home: 'Aston Villa', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-9-83', gw: 9, home: 'Brentford', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-9-84', gw: 9, home: 'Chelsea', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-9-85', gw: 9, home: 'Coventry City', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-9-86', gw: 9, home: 'Hull City', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-9-87', gw: 9, home: 'Liverpool', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-9-88', gw: 9, home: 'Manchester City', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-9-89', gw: 9, home: 'Newcastle United', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-9-90', gw: 9, home: 'Tottenham Hotspur', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-10-91', gw: 10, home: 'Arsenal', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-10-92', gw: 10, home: 'Brighton & Hove Albion', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-10-93', gw: 10, home: 'Crystal Palace', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-10-94', gw: 10, home: 'Everton', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-10-95', gw: 10, home: 'Fulham', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-10-96', gw: 10, home: 'Ipswich Town', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-10-97', gw: 10, home: 'Leeds United', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-10-98', gw: 10, home: 'Manchester United', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-10-99', gw: 10, home: 'Nottingham Forest', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-10-100', gw: 10, home: 'Sunderland', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-11-101', gw: 11, home: 'AFC Bournemouth', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-11-102', gw: 11, home: 'Aston Villa', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-11-103', gw: 11, home: 'Brentford', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-11-104', gw: 11, home: 'Chelsea', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-11-105', gw: 11, home: 'Coventry City', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-11-106', gw: 11, home: 'Hull City', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-11-107', gw: 11, home: 'Liverpool', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-11-108', gw: 11, home: 'Manchester City', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-11-109', gw: 11, home: 'Newcastle United', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-11-110', gw: 11, home: 'Tottenham Hotspur', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-12-111', gw: 12, home: 'Arsenal', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-12-112', gw: 12, home: 'Brighton & Hove Albion', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-12-113', gw: 12, home: 'Crystal Palace', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-12-114', gw: 12, home: 'Everton', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-12-115', gw: 12, home: 'Fulham', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-12-116', gw: 12, home: 'Ipswich Town', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-12-117', gw: 12, home: 'Leeds United', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-12-118', gw: 12, home: 'Manchester United', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-12-119', gw: 12, home: 'Nottingham Forest', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-12-120', gw: 12, home: 'Sunderland', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-13-121', gw: 13, home: 'AFC Bournemouth', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-13-122', gw: 13, home: 'Aston Villa', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-13-123', gw: 13, home: 'Brentford', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-13-124', gw: 13, home: 'Chelsea', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-13-125', gw: 13, home: 'Coventry City', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-13-126', gw: 13, home: 'Hull City', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-13-127', gw: 13, home: 'Liverpool', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-13-128', gw: 13, home: 'Manchester City', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-13-129', gw: 13, home: 'Newcastle United', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-13-130', gw: 13, home: 'Tottenham Hotspur', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-14-131', gw: 14, home: 'AFC Bournemouth', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-14-132', gw: 14, home: 'Aston Villa', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-14-133', gw: 14, home: 'Brentford', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-14-134', gw: 14, home: 'Chelsea', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-14-135', gw: 14, home: 'Everton', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-14-136', gw: 14, home: 'Leeds United', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-14-137', gw: 14, home: 'Manchester United', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-14-138', gw: 14, home: 'Newcastle United', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-14-139', gw: 14, home: 'Nottingham Forest', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-14-140', gw: 14, home: 'Tottenham Hotspur', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-15-141', gw: 15, home: 'Arsenal', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-15-142', gw: 15, home: 'Brighton & Hove Albion', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-15-143', gw: 15, home: 'Coventry City', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-15-144', gw: 15, home: 'Crystal Palace', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-15-145', gw: 15, home: 'Fulham', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-15-146', gw: 15, home: 'Hull City', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-15-147', gw: 15, home: 'Ipswich Town', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-15-148', gw: 15, home: 'Liverpool', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-15-149', gw: 15, home: 'Manchester City', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-15-150', gw: 15, home: 'Sunderland', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-16-151', gw: 16, home: 'AFC Bournemouth', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-16-152', gw: 16, home: 'Arsenal', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-16-153', gw: 16, home: 'Brentford', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-16-154', gw: 16, home: 'Brighton & Hove Albion', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-16-155', gw: 16, home: 'Chelsea', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-16-156', gw: 16, home: 'Leeds United', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-16-157', gw: 16, home: 'Liverpool', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-16-158', gw: 16, home: 'Manchester City', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-16-159', gw: 16, home: 'Nottingham Forest', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-16-160', gw: 16, home: 'Sunderland', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-17-161', gw: 17, home: 'Aston Villa', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-17-162', gw: 17, home: 'Coventry City', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-17-163', gw: 17, home: 'Crystal Palace', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-17-164', gw: 17, home: 'Everton', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-17-165', gw: 17, home: 'Fulham', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-17-166', gw: 17, home: 'Hull City', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-17-167', gw: 17, home: 'Ipswich Town', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-17-168', gw: 17, home: 'Manchester United', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-17-169', gw: 17, home: 'Newcastle United', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-17-170', gw: 17, home: 'Tottenham Hotspur', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-18-171', gw: 18, home: 'Aston Villa', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-18-172', gw: 18, home: 'Coventry City', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-18-173', gw: 18, home: 'Crystal Palace', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-18-174', gw: 18, home: 'Everton', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-18-175', gw: 18, home: 'Fulham', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-18-176', gw: 18, home: 'Hull City', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-18-177', gw: 18, home: 'Ipswich Town', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-18-178', gw: 18, home: 'Manchester United', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-18-179', gw: 18, home: 'Newcastle United', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-18-180', gw: 18, home: 'Tottenham Hotspur', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-19-181', gw: 19, home: 'AFC Bournemouth', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-19-182', gw: 19, home: 'Arsenal', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-19-183', gw: 19, home: 'Brentford', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-19-184', gw: 19, home: 'Brighton & Hove Albion', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-19-185', gw: 19, home: 'Chelsea', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-19-186', gw: 19, home: 'Leeds United', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-19-187', gw: 19, home: 'Liverpool', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-19-188', gw: 19, home: 'Manchester City', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-19-189', gw: 19, home: 'Nottingham Forest', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-19-190', gw: 19, home: 'Sunderland', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-20-191', gw: 20, home: 'Arsenal', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-20-192', gw: 20, home: 'Brighton & Hove Albion', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-20-193', gw: 20, home: 'Crystal Palace', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-20-194', gw: 20, home: 'Everton', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-20-195', gw: 20, home: 'Fulham', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-20-196', gw: 20, home: 'Ipswich Town', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-20-197', gw: 20, home: 'Leeds United', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-20-198', gw: 20, home: 'Manchester United', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-20-199', gw: 20, home: 'Nottingham Forest', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-20-200', gw: 20, home: 'Sunderland', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-21-201', gw: 21, home: 'AFC Bournemouth', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-21-202', gw: 21, home: 'Aston Villa', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-21-203', gw: 21, home: 'Brentford', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-21-204', gw: 21, home: 'Chelsea', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-21-205', gw: 21, home: 'Coventry City', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-21-206', gw: 21, home: 'Hull City', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-21-207', gw: 21, home: 'Liverpool', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-21-208', gw: 21, home: 'Manchester City', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-21-209', gw: 21, home: 'Newcastle United', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-21-210', gw: 21, home: 'Tottenham Hotspur', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-22-211', gw: 22, home: 'Arsenal', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-22-212', gw: 22, home: 'Brighton & Hove Albion', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-22-213', gw: 22, home: 'Crystal Palace', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-22-214', gw: 22, home: 'Everton', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-22-215', gw: 22, home: 'Fulham', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-22-216', gw: 22, home: 'Ipswich Town', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-22-217', gw: 22, home: 'Leeds United', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-22-218', gw: 22, home: 'Manchester United', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-22-219', gw: 22, home: 'Nottingham Forest', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-22-220', gw: 22, home: 'Sunderland', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-23-221', gw: 23, home: 'AFC Bournemouth', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-23-222', gw: 23, home: 'Aston Villa', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-23-223', gw: 23, home: 'Brentford', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-23-224', gw: 23, home: 'Chelsea', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-23-225', gw: 23, home: 'Coventry City', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-23-226', gw: 23, home: 'Hull City', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-23-227', gw: 23, home: 'Liverpool', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-23-228', gw: 23, home: 'Manchester City', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-23-229', gw: 23, home: 'Newcastle United', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-23-230', gw: 23, home: 'Tottenham Hotspur', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-24-231', gw: 24, home: 'Arsenal', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-24-232', gw: 24, home: 'Brighton & Hove Albion', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-24-233', gw: 24, home: 'Crystal Palace', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-24-234', gw: 24, home: 'Everton', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-24-235', gw: 24, home: 'Fulham', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-24-236', gw: 24, home: 'Ipswich Town', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-24-237', gw: 24, home: 'Leeds United', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-24-238', gw: 24, home: 'Manchester United', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-24-239', gw: 24, home: 'Nottingham Forest', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-24-240', gw: 24, home: 'Sunderland', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-25-241', gw: 25, home: 'Aston Villa', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-25-242', gw: 25, home: 'Coventry City', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-25-243', gw: 25, home: 'Crystal Palace', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-25-244', gw: 25, home: 'Everton', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-25-245', gw: 25, home: 'Fulham', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-25-246', gw: 25, home: 'Hull City', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-25-247', gw: 25, home: 'Ipswich Town', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-25-248', gw: 25, home: 'Manchester United', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-25-249', gw: 25, home: 'Newcastle United', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-25-250', gw: 25, home: 'Tottenham Hotspur', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-26-251', gw: 26, home: 'AFC Bournemouth', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-26-252', gw: 26, home: 'Arsenal', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-26-253', gw: 26, home: 'Brentford', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-26-254', gw: 26, home: 'Brighton & Hove Albion', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-26-255', gw: 26, home: 'Chelsea', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-26-256', gw: 26, home: 'Leeds United', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-26-257', gw: 26, home: 'Liverpool', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-26-258', gw: 26, home: 'Manchester City', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-26-259', gw: 26, home: 'Nottingham Forest', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-26-260', gw: 26, home: 'Sunderland', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-27-261', gw: 27, home: 'Aston Villa', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-27-262', gw: 27, home: 'Coventry City', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-27-263', gw: 27, home: 'Crystal Palace', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-27-264', gw: 27, home: 'Everton', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-27-265', gw: 27, home: 'Fulham', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-27-266', gw: 27, home: 'Hull City', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-27-267', gw: 27, home: 'Ipswich Town', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-27-268', gw: 27, home: 'Manchester United', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-27-269', gw: 27, home: 'Newcastle United', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-27-270', gw: 27, home: 'Tottenham Hotspur', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-28-271', gw: 28, home: 'AFC Bournemouth', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-28-272', gw: 28, home: 'Arsenal', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-28-273', gw: 28, home: 'Brentford', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-28-274', gw: 28, home: 'Brighton & Hove Albion', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-28-275', gw: 28, home: 'Chelsea', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-28-276', gw: 28, home: 'Leeds United', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-28-277', gw: 28, home: 'Liverpool', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-28-278', gw: 28, home: 'Manchester City', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-28-279', gw: 28, home: 'Nottingham Forest', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-28-280', gw: 28, home: 'Sunderland', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-29-281', gw: 29, home: 'AFC Bournemouth', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-29-282', gw: 29, home: 'Aston Villa', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-29-283', gw: 29, home: 'Chelsea', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-29-284', gw: 29, home: 'Coventry City', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-29-285', gw: 29, home: 'Crystal Palace', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-29-286', gw: 29, home: 'Leeds United', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-29-287', gw: 29, home: 'Liverpool', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-29-288', gw: 29, home: 'Manchester United', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-29-289', gw: 29, home: 'Sunderland', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-29-290', gw: 29, home: 'Tottenham Hotspur', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-30-291', gw: 30, home: 'Arsenal', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-30-292', gw: 30, home: 'Brentford', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-30-293', gw: 30, home: 'Brighton & Hove Albion', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-30-294', gw: 30, home: 'Everton', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-30-295', gw: 30, home: 'Fulham', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-30-296', gw: 30, home: 'Hull City', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-30-297', gw: 30, home: 'Ipswich Town', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-30-298', gw: 30, home: 'Manchester City', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-30-299', gw: 30, home: 'Newcastle United', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-30-300', gw: 30, home: 'Nottingham Forest', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-31-301', gw: 31, home: 'AFC Bournemouth', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-31-302', gw: 31, home: 'Aston Villa', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-31-303', gw: 31, home: 'Chelsea', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-31-304', gw: 31, home: 'Coventry City', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-31-305', gw: 31, home: 'Crystal Palace', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-31-306', gw: 31, home: 'Leeds United', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-31-307', gw: 31, home: 'Liverpool', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-31-308', gw: 31, home: 'Manchester United', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-31-309', gw: 31, home: 'Sunderland', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-31-310', gw: 31, home: 'Tottenham Hotspur', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-32-311', gw: 32, home: 'Arsenal', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-32-312', gw: 32, home: 'Brentford', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-32-313', gw: 32, home: 'Brighton & Hove Albion', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-32-314', gw: 32, home: 'Everton', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-32-315', gw: 32, home: 'Fulham', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-32-316', gw: 32, home: 'Hull City', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-32-317', gw: 32, home: 'Ipswich Town', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-32-318', gw: 32, home: 'Manchester City', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-32-319', gw: 32, home: 'Newcastle United', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-32-320', gw: 32, home: 'Nottingham Forest', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-33-321', gw: 33, home: 'AFC Bournemouth', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-33-322', gw: 33, home: 'Aston Villa', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-33-323', gw: 33, home: 'Brentford', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-33-324', gw: 33, home: 'Chelsea', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-33-325', gw: 33, home: 'Everton', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-33-326', gw: 33, home: 'Leeds United', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-33-327', gw: 33, home: 'Manchester United', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-33-328', gw: 33, home: 'Newcastle United', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-33-329', gw: 33, home: 'Nottingham Forest', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-33-330', gw: 33, home: 'Tottenham Hotspur', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-34-331', gw: 34, home: 'Arsenal', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-34-332', gw: 34, home: 'Brighton & Hove Albion', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-34-333', gw: 34, home: 'Coventry City', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-34-334', gw: 34, home: 'Crystal Palace', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-34-335', gw: 34, home: 'Fulham', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-34-336', gw: 34, home: 'Hull City', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-34-337', gw: 34, home: 'Ipswich Town', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-34-338', gw: 34, home: 'Liverpool', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-34-339', gw: 34, home: 'Manchester City', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-34-340', gw: 34, home: 'Sunderland', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-35-341', gw: 35, home: 'AFC Bournemouth', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-35-342', gw: 35, home: 'Brentford', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-35-343', gw: 35, home: 'Brighton & Hove Albion', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-35-344', gw: 35, home: 'Everton', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-35-345', gw: 35, home: 'Fulham', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-35-346', gw: 35, home: 'Leeds United', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-35-347', gw: 35, home: 'Manchester City', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-35-348', gw: 35, home: 'Newcastle United', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-35-349', gw: 35, home: 'Nottingham Forest', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-35-350', gw: 35, home: 'Tottenham Hotspur', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-36-351', gw: 36, home: 'Arsenal', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-36-352', gw: 36, home: 'Aston Villa', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-36-353', gw: 36, home: 'Chelsea', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-36-354', gw: 36, home: 'Coventry City', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-36-355', gw: 36, home: 'Crystal Palace', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-36-356', gw: 36, home: 'Hull City', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-36-357', gw: 36, home: 'Ipswich Town', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-36-358', gw: 36, home: 'Liverpool', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-36-359', gw: 36, home: 'Manchester United', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-36-360', gw: 36, home: 'Sunderland', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-37-361', gw: 37, home: 'AFC Bournemouth', away: 'Chelsea', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-37-362', gw: 37, home: 'Brentford', away: 'Hull City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-37-363', gw: 37, home: 'Brighton & Hove Albion', away: 'Liverpool', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-37-364', gw: 37, home: 'Everton', away: 'Arsenal', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-37-365', gw: 37, home: 'Fulham', away: 'Coventry City', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-37-366', gw: 37, home: 'Leeds United', away: 'Sunderland', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-37-367', gw: 37, home: 'Manchester City', away: 'Aston Villa', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-37-368', gw: 37, home: 'Newcastle United', away: 'Crystal Palace', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-37-369', gw: 37, home: 'Nottingham Forest', away: 'Ipswich Town', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-37-370', gw: 37, home: 'Tottenham Hotspur', away: 'Manchester United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-38-371', gw: 38, home: 'Arsenal', away: 'Brighton & Hove Albion', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-38-372', gw: 38, home: 'Aston Villa', away: 'Tottenham Hotspur', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-38-373', gw: 38, home: 'Chelsea', away: 'Brentford', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-38-374', gw: 38, home: 'Coventry City', away: 'Nottingham Forest', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-38-375', gw: 38, home: 'Crystal Palace', away: 'Leeds United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-38-376', gw: 38, home: 'Hull City', away: 'Newcastle United', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-38-377', gw: 38, home: 'Ipswich Town', away: 'Everton', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-38-378', gw: 38, home: 'Liverpool', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-38-379', gw: 38, home: 'Manchester United', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
+      { id: 'fixture-preset-38-380', gw: 38, home: 'Sunderland', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} }
+    ]
+  };
+
+  let state = cloneData(defaultState);
+  // First fixture date of each gameweek (UK time), used to auto-select the
+  // "current" gameweek on Predictions/Results as the season progresses.
+  const GW_START_DATES = {
+    1: "2026-08-21", 2: "2026-08-28", 3: "2026-09-04", 4: "2026-09-12", 5: "2026-09-18",
+    6: "2026-10-10", 7: "2026-10-17", 8: "2026-10-24", 9: "2026-10-31", 10: "2026-11-07",
+    11: "2026-11-21", 12: "2026-11-28", 13: "2026-12-02", 14: "2026-12-05", 15: "2026-12-12",
+    16: "2026-12-19", 17: "2026-12-26", 18: "2026-12-30", 19: "2027-01-02", 20: "2027-01-06",
+    21: "2027-01-16", 22: "2027-01-23", 23: "2027-01-30", 24: "2027-02-06", 25: "2027-02-10",
+    26: "2027-02-20", 27: "2027-02-27", 28: "2027-03-03", 29: "2027-03-13", 30: "2027-03-20",
+    31: "2027-04-10", 32: "2027-04-17", 33: "2027-04-24", 34: "2027-05-01", 35: "2027-05-08",
+    36: "2027-05-15", 37: "2027-05-23", 38: "2027-05-30"
+  };
+
+  function getCurrentGameweekByDate() {
+    const today = new Date();
+    let current = 1;
+    for (let gw = 1; gw <= 38; gw++) {
+      if (new Date(GW_START_DATES[gw]) <= today) current = gw;
+    }
+    return current;
+  }
+
+  let selectedGw = getCurrentGameweekByDate();
+  let currentUser = null;
+  const ADMIN_NAME = "Jason";
+  let pendingLoginName = null;
+
+  // ---------- Cloud sync (kvdb.io) ----------
+  //
+  // Real cross-device sync needs an actual internet backend — a file shared
+  // via OneDrive doesn't sync what's saved *inside* it (localStorage is
+  // per-browser). kvdb.io is a free, no-signup key-value store built for
+  // exactly this: a static page talking to it directly over fetch().
+  //
+  // The bucket ID is the "league code" — one person creates it, everyone
+  // else joins with the same code. It's stored locally per-device (just a
+  // pointer to the shared bucket), while the actual league data — players,
+  // fixtures, predictions, results — all lives in the cloud bucket, split
+  // across small keys since each value is capped at 16KB:
+  //   "players"      -> [{name, pin}, ...]
+  //   "fixtures-meta" -> [{id, gw, home, away}, ...]
+  //   "gw-data:<N>"   -> { [fixtureId]: {actualHome, actualAway, predictions} }
+
+  const CLOUD_BASE = "https://kvdb.io";
+  const BUCKET_LOCAL_KEY = "pl-league-bucket-id";
+
+  function getBucketId() {
+    try { return localStorage.getItem(BUCKET_LOCAL_KEY) || null; } catch (e) { return null; }
+  }
+  function setBucketId(id) {
+    try { localStorage.setItem(BUCKET_LOCAL_KEY, id); } catch (e) { /* ignore */ }
+  }
+
+  async function cloudCreateBucket() {
+    const res = await fetch(CLOUD_BASE, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "email=" + encodeURIComponent("pl-prediction-league-" + Date.now() + "@example.com")
+    });
+    if (!res.ok) throw new Error("Couldn't create a league (status " + res.status + ")");
+    const id = (await res.text()).trim();
+    if (!id) throw new Error("No league code came back — try again");
+    return id;
+  }
+
+  async function cloudGetRaw(key) {
+    const bucket = getBucketId();
+    if (!bucket) throw new Error("Not connected to a league yet");
+    const res = await fetch(`${CLOUD_BASE}/${bucket}/${encodeURIComponent(key)}`, { cache: "no-store" });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error("Cloud read failed (status " + res.status + ")");
+    return await res.text();
+  }
+
+  async function cloudSetRaw(key, value) {
+    const bucket = getBucketId();
+    if (!bucket) throw new Error("Not connected to a league yet");
+    const res = await fetch(`${CLOUD_BASE}/${bucket}/${encodeURIComponent(key)}`, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: value
+    });
+    if (!res.ok) throw new Error("Cloud save failed (status " + res.status + ")");
+    return true;
+  }
+
+  function fixturesMetaFromState() {
+    return state.fixtures.map(f => ({ id: f.id, gw: f.gw, home: f.home, away: f.away }));
+  }
+
+  function gwDataFromState(gw) {
+    const out = {};
+    state.fixtures.filter(f => Number(f.gw) === Number(gw)).forEach(f => {
+      out[f.id] = { actualHome: f.actualHome, actualAway: f.actualAway, predictions: f.predictions || {} };
+    });
+    return out;
+  }
+
+  async function loadLeague() {
+    let players = null;
+    let fixturesMeta = null;
+
+    try {
+      const raw = await cloudGetRaw("players");
+      if (raw) players = JSON.parse(raw);
+    } catch (e) { console.error("Couldn't load players from the cloud:", e); }
+
+    try {
+      const raw = await cloudGetRaw("fixtures-meta");
+      if (raw) fixturesMeta = JSON.parse(raw);
+    } catch (e) { console.error("Couldn't load fixtures from the cloud:", e); }
+
+    const hadPlayers = Array.isArray(players) && players.length > 0;
+    const hadFixtures = Array.isArray(fixturesMeta) && fixturesMeta.length > 0;
+
+    if (!hadPlayers) players = cloneData(defaultState.players);
+    if (!hadFixtures) fixturesMeta = cloneData(defaultState.fixtures).map(f => ({ id: f.id, gw: f.gw, home: f.home, away: f.away }));
+
+    const gameweeks = [...new Set(fixturesMeta.map(f => Number(f.gw)))].sort((a,b) => a-b);
+    const gwResults = await Promise.allSettled(gameweeks.map(gw => cloudGetRaw(`gw-data:${gw}`)));
+    const gwDataByGw = {};
+    gameweeks.forEach((gw, i) => {
+      const result = gwResults[i];
+      if (result.status === "fulfilled" && result.value) {
+        try { gwDataByGw[gw] = JSON.parse(result.value); } catch (e) { gwDataByGw[gw] = {}; }
+      } else {
+        gwDataByGw[gw] = {};
+      }
+    });
+
+    state = {
+      players,
+      fixtures: fixturesMeta.map(f => {
+        const extra = (gwDataByGw[Number(f.gw)] || {})[f.id] || {};
+        return {
+          id: f.id, gw: f.gw, home: f.home, away: f.away,
+          actualHome: extra.actualHome ?? "", actualAway: extra.actualAway ?? "", predictions: extra.predictions || {}
+        };
+      })
+    };
+
+    if (!hadPlayers) markDirty({ players: true }, "Saved", true);
+    if (!hadFixtures) markDirty({ fixturesMeta: true }, "Saved", true);
+  }
+
+  // ---------- Save queue: only pushes the small pieces that actually changed ----------
+
+  let dirty = { players: false, fixturesMeta: false, gws: new Set() };
+  let saveDebounceTimer = null;
+  let saveInProgress = false;
+  let pendingMessage = "Saved";
+
+  function markDirty(parts = {}, message = "Saved", immediate = false) {
+    if (parts.players) dirty.players = true;
+    if (parts.fixturesMeta) dirty.fixturesMeta = true;
+    if (parts.gw !== undefined && parts.gw !== null) dirty.gws.add(Number(parts.gw));
+    pendingMessage = message;
+    clearTimeout(saveDebounceTimer);
+    if (immediate) {
+      flushSave();
+    } else {
+      saveDebounceTimer = setTimeout(flushSave, 500);
+    }
+  }
+
+  function hasPendingSave() {
+    return dirty.players || dirty.fixturesMeta || dirty.gws.size > 0;
+  }
+
+  async function flushSave() {
+    clearTimeout(saveDebounceTimer);
+    if (saveInProgress) return;
+    saveInProgress = true;
+    let anyFailure = false;
+
+    while (hasPendingSave()) {
+      const doPlayers = dirty.players; dirty.players = false;
+      const doMeta = dirty.fixturesMeta; dirty.fixturesMeta = false;
+      const gws = [...dirty.gws]; dirty.gws.clear();
+
+      try {
+        if (doPlayers) await cloudSetRaw("players", JSON.stringify(state.players));
+        if (doMeta) await cloudSetRaw("fixtures-meta", JSON.stringify(fixturesMetaFromState()));
+        for (const gw of gws) await cloudSetRaw(`gw-data:${gw}`, JSON.stringify(gwDataFromState(gw)));
+      } catch (e) {
+        anyFailure = true;
+        console.error("Cloud sync failed:", e);
+      }
+    }
+
+    showToast(anyFailure ? "Couldn't sync to the cloud — check your connection and try again" : pendingMessage);
+    renderAll();
+    saveInProgress = false;
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 1600);
+  }
+
+  // ---------- Login screen ----------
+
+  function renderLoginScreen() {
+    const list = document.getElementById("loginPlayerList");
+    list.innerHTML = state.players.map(p => `
+      <button class="btn btn-muted login-player-btn" type="button" data-name="${escapeAttr(p.name)}">${escapeHtml(p.name)}</button>
+    `).join("");
+
+    list.querySelectorAll("[data-name]").forEach(btn => {
+      btn.onclick = () => beginPinStep(btn.dataset.name);
+    });
+
+    document.getElementById("loginPinForm").style.display = "none";
+    document.getElementById("loginError").textContent = "";
+    document.getElementById("loginLoading").style.display = "none";
+    document.getElementById("loginBody").style.display = "block";
+  }
+
+  function beginPinStep(name) {
+    pendingLoginName = name;
+    const player = state.players.find(p => p.name === name);
+    if (!player) return;
+
+    document.getElementById("loginError").textContent = "";
+    document.getElementById("pinInput").value = "";
+    document.getElementById("loginPinLabel").textContent = player.pin
+      ? `Enter ${name}'s PIN`
+      : `Choose a PIN for ${name} (4+ digits, first time only)`;
+    document.getElementById("loginPinForm").style.display = "grid";
+    document.getElementById("pinInput").focus();
+  }
+
+  async function submitPin() {
+    const player = state.players.find(p => p.name === pendingLoginName);
+    if (!player) return;
+    const pin = document.getElementById("pinInput").value.trim();
+
+    if (!player.pin) {
+      if (pin.length < 4) {
+        document.getElementById("loginError").textContent = "Choose a PIN with at least 4 characters.";
+        return;
+      }
+      player.pin = pin;
+      markDirty({ players: true }, "Saved", true);
+      completeLogin(player.name);
+      return;
+    }
+
+    if (pin === player.pin) {
+      completeLogin(player.name);
+    } else {
+      document.getElementById("loginError").textContent = "Incorrect PIN.";
+      document.getElementById("pinInput").value = "";
+      document.getElementById("pinInput").focus();
+    }
+  }
+
+  function completeLogin(name) {
+    currentUser = name;
+    pendingLoginName = null;
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("currentUserPill").innerHTML = `Logged in as <strong>${escapeHtml(currentUser)}</strong>`;
+    document.getElementById("leagueCodeDisplay").value = getBucketId() || "";
+
+    const isAdmin = currentUser === ADMIN_NAME;
+    const adminOnlyViews = ["results", "setup"];
+
+    adminOnlyViews.forEach(view => {
+      document.querySelector(`.tab[data-view="${view}"]`).style.display = isAdmin ? "" : "none";
+    });
+
+    const activeIsAdminOnly = adminOnlyViews.some(view => document.getElementById(view).classList.contains("active"));
+    if (!isAdmin && activeIsAdminOnly) {
+      const dashboardTabBtn = document.querySelector('.tab[data-view="dashboard"]');
+      document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+      document.querySelectorAll(".view").forEach(x => x.classList.remove("active"));
+      dashboardTabBtn.classList.add("active");
+      document.getElementById("dashboard").classList.add("active");
+    }
+
+    renderTabs();
+    renderAll();
+  }
+
+  function logout() {
+    if (hasPendingSave()) flushSave();
+    currentUser = null;
+    document.getElementById("app").style.display = "none";
+    document.getElementById("loginScreen").style.display = "flex";
+    renderLoginScreen();
+  }
+
+  document.getElementById("loginAddPlayerBtn").onclick = async () => {
+    const name = prompt("New player's name:");
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (state.players.some(p => p.name.toLowerCase() === trimmed.toLowerCase())) {
+      alert("That name is already in the league.");
+      return;
+    }
+    state.players.push({ name: trimmed, pin: "" });
+    markDirty({ players: true }, "Saved", true);
+    renderLoginScreen();
+    beginPinStep(trimmed);
+  };
+
+  document.getElementById("pinContinueBtn").onclick = submitPin;
+  document.getElementById("pinCancelBtn").onclick = () => {
+    pendingLoginName = null;
+    document.getElementById("loginPinForm").style.display = "none";
+  };
+  document.getElementById("pinInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") submitPin();
+  });
+  document.getElementById("logoutBtn").onclick = logout;
+
+  document.getElementById("refreshBtn").onclick = async () => {
+    const btn = document.getElementById("refreshBtn");
+    btn.disabled = true;
+    btn.textContent = "Refreshing…";
+    try {
+      await loadLeague();
+      showToast("Refreshed");
+    } catch (e) {
+      console.error("Refresh failed:", e);
+      showToast("Couldn't refresh — check your connection");
+    }
+    renderAll();
+    btn.disabled = false;
+    btn.textContent = "↻ Refresh";
+  };
+
+  document.getElementById("copyLeagueCodeBtn").onclick = async () => {
+    const code = getBucketId() || "";
+    try {
+      await navigator.clipboard.writeText(code);
+      showToast("League code copied");
+    } catch (e) {
+      showToast("Couldn't copy — select and copy it manually");
+    }
+  };
+
+  // ---------- Scoring ----------
+
+  function isScore(value) {
+    return value !== "" && value !== null && value !== undefined && !Number.isNaN(Number(value));
+  }
+
+  function resultType(home, away) {
+    home = Number(home); away = Number(away);
+    return home > away ? "H" : home < away ? "A" : "D";
+  }
+
+  function pointsFor(fixture, playerName) {
+    const p = (fixture.predictions && fixture.predictions[playerName]);
+    if (!p || !isScore(p.home) || !isScore(p.away) || !isScore(fixture.actualHome) || !isScore(fixture.actualAway)) {
+      return { points: 0, type: "none" };
+    }
+
+    const ph = Number(p.home), pa = Number(p.away);
+    const ah = Number(fixture.actualHome), aa = Number(fixture.actualAway);
+
+    if (ph === ah && pa === aa) return { points: 30, type: "exact" };
+    if (resultType(ph, pa) === resultType(ah, aa)) return { points: 10, type: "result" };
+    return { points: 0, type: "wrong" };
+  }
+
+  function calculateTable() {
+    const rows = state.players.map(p => ({
+      name: p.name,
+      points: 0,
+      exact: 0,
+      correct: 0,
+      predictionsMade: 0,
+      completedPredictions: 0,
+      gwWins: 0,
+      exactRate: 0,
+      correctResultRate: 0
+    }));
+
+    state.fixtures.forEach(f => {
+      rows.forEach(row => {
+        const prediction = (f.predictions && f.predictions[row.name]);
+        const hasPrediction = prediction && isScore(prediction.home) && isScore(prediction.away);
+        const matchCompleted = isScore(f.actualHome) && isScore(f.actualAway);
+
+        if (hasPrediction) row.predictionsMade++;
+        if (hasPrediction && matchCompleted) row.completedPredictions++;
+
+        const score = pointsFor(f, row.name);
+        row.points += score.points;
+        if (score.type === "exact") row.exact++;
+        if (score.type === "result") row.correct++;
+      });
+    });
+
+    rows.forEach(row => {
+      const total = row.completedPredictions;
+      row.exactRate = total ? (row.exact / total) * 100 : 0;
+      row.correctResultRate = total ? ((row.exact + row.correct) / total) * 100 : 0;
+    });
+
+    const gwData = calculateGameweekData();
+    gwData.forEach(gw => {
+      if (gw.completed > 0) {
+        const max = Math.max(...gw.scores.map(x => x.points));
+        gw.scores.filter(x => x.points === max).forEach(x => {
+          const row = rows.find(r => r.name === x.name);
+          if (row) row.gwWins++;
+        });
+      }
+    });
+
+    return rows.sort((a,b) =>
+      b.points - a.points ||
+      b.exact - a.exact ||
+      b.correctResultRate - a.correctResultRate ||
+      b.correct - a.correct ||
+      a.name.localeCompare(b.name)
+    );
+  }
+
+  function calculateGameweekData() {
+    const gameweeks = [...new Set(state.fixtures.map(f => Number(f.gw)))].sort((a,b) => a-b);
+
+    return gameweeks.map(gw => {
+      const fixtures = state.fixtures.filter(f => Number(f.gw) === gw);
+      const completedFixtures = fixtures.filter(f => isScore(f.actualHome) && isScore(f.actualAway));
+      const scores = state.players.map(p => ({
+        name: p.name,
+        points: completedFixtures.reduce((sum, f) => sum + pointsFor(f, p.name).points, 0)
+      }));
+      return { gw, fixtures, completed: completedFixtures.length, scores };
+    });
+  }
+
+  // ---------- Rendering ----------
+
+  function renderTabs() {
+    document.querySelectorAll(".tab").forEach(btn => {
+      btn.onclick = () => {
+        if ((btn.dataset.view === "setup" || btn.dataset.view === "results") && currentUser !== ADMIN_NAME) return;
+        if (hasPendingSave()) flushSave();
+        document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+        document.querySelectorAll(".view").forEach(x => x.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(btn.dataset.view).classList.add("active");
+      };
+    });
+  }
+
+  function renderGameweekSelect() {
+    const gameweeks = [...new Set(state.fixtures.map(f => Number(f.gw)))].sort((a,b) => a-b);
+    if (!gameweeks.length) gameweeks.push(1);
+    if (!gameweeks.includes(Number(selectedGw))) selectedGw = gameweeks[0];
+
+    const optionsHtml = gameweeks.map(gw =>
+      `<option value="${gw}" ${Number(selectedGw) === gw ? "selected" : ""}>Gameweek ${gw}</option>`
+    ).join("");
+
+    const onSelectGw = value => {
+      selectedGw = Number(value);
+      renderFixtures();
+      renderResultsEntry();
+      renderAllGuesses();
+      renderStats();
+    };
+
+    ["gameweekSelect", "resultsGwSelect", "allGuessesGwSelect"].forEach(id => {
+      const select = document.getElementById(id);
+      select.innerHTML = optionsHtml;
+      select.onchange = () => onSelectGw(select.value);
+    });
+  }
+
+  function renderFixtures() {
+    const container = document.getElementById("fixtureContainer");
+    const fixtures = state.fixtures.filter(f => Number(f.gw) === Number(selectedGw));
+
+    if (!fixtures.length) {
+      container.innerHTML = `<div class="empty">No fixtures have been added for Gameweek ${selectedGw}.</div>`;
+      return;
+    }
+
+    container.innerHTML = fixtures.map(f => {
+      const p = (f.predictions && f.predictions[currentUser]) || {home:"", away:""};
+      const score = pointsFor(f, currentUser);
+      const cls = score.points === 30 ? "points-30" : score.points === 10 ? "points-10" : "";
+      const hasActual = isScore(f.actualHome) && isScore(f.actualAway);
+      const actualText = hasActual ? `${f.actualHome}–${f.actualAway}` : "vs";
+      const hasSavedOwnPrediction = isScore(p.home) && isScore(p.away);
+
+      let revealHtml;
+      if (hasSavedOwnPrediction) {
+        const chips = state.players.map(player => {
+          const pp = (f.predictions && f.predictions[player.name]) || {};
+          const text = (isScore(pp.home) && isScore(pp.away)) ? `${pp.home}–${pp.away}` : "not in yet";
+          const isYou = player.name === currentUser;
+          return `<span class="rp-chip ${isYou ? "is-you" : ""}">${escapeHtml(player.name)}: ${text}</span>`;
+        }).join("");
+        revealHtml = `<div class="fixture-row-reveal">${chips}</div>`;
+      } else {
+        revealHtml = `<div class="fixture-row-locked">Save your prediction to see everyone else's.</div>`;
+      }
+
+      return `
+        <div class="fixture-row" data-id="${f.id}">
+          <div class="fixture-row-main">
+            <div class="match-teams">${badgeImg(f.home)}${escapeHtml(f.home)} <span class="actual-display ${hasActual ? "is-final" : ""}">${actualText}</span> ${escapeHtml(f.away)}${badgeImg(f.away)}</div>
+            <div class="row-inputs">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocorrect="off" spellcheck="false"
+                data-pfield="home" value="${p.home ?? ""}" aria-label="${escapeHtml(currentUser)} home prediction for ${escapeHtml(f.home)}">
+              <strong>–</strong>
+              <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocorrect="off" spellcheck="false"
+                data-pfield="away" value="${p.away ?? ""}" aria-label="${escapeHtml(currentUser)} away prediction for ${escapeHtml(f.away)}">
+            </div>
+            <div class="row-points ${cls}">${score.points} pts</div>
+          </div>
+          ${revealHtml}
+        </div>
+      `;
+    }).join("");
+
+    container.querySelectorAll(".fixture-row").forEach(row => {
+      const id = row.dataset.id;
+      const fixture = state.fixtures.find(f => f.id === id);
+
+      row.querySelectorAll("[data-pfield]").forEach(input => {
+        input.addEventListener("focus", function () { this.select(); });
+        input.addEventListener("touchend", function () { this.focus(); }, { passive: true });
+        input.addEventListener("input", () => {
+          const cleaned = input.value.replace(/[^0-9]/g, "");
+          if (input.value !== cleaned) input.value = cleaned;
+          if (!fixture.predictions[currentUser]) fixture.predictions[currentUser] = { home: "", away: "" };
+          fixture.predictions[currentUser][input.dataset.pfield] = cleaned === "" ? "" : Number(cleaned);
+        });
+      });
+    });
+  }
+
+  function renderResultsEntry() {
+    const container = document.getElementById("resultsEntryContainer");
+    const fixtures = state.fixtures.filter(f => Number(f.gw) === Number(selectedGw));
+
+    if (!fixtures.length) {
+      container.innerHTML = `<div class="empty">No fixtures have been added for Gameweek ${selectedGw}.</div>`;
+      return;
+    }
+
+    container.innerHTML = fixtures.map(f => `
+      <div class="fixture-row" data-id="${f.id}">
+        <div class="fixture-row-main">
+          <div class="match-teams">${badgeImg(f.home)}${escapeHtml(f.home)} <span class="mini-note" style="display:inline">vs</span> ${escapeHtml(f.away)}${badgeImg(f.away)}</div>
+          <div class="row-inputs">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocorrect="off" spellcheck="false"
+              data-field="actualHome" value="${f.actualHome}" aria-label="${escapeHtml(f.home)} actual score">
+            <strong>–</strong>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocorrect="off" spellcheck="false"
+              data-field="actualAway" value="${f.actualAway}" aria-label="${escapeHtml(f.away)} actual score">
+          </div>
+          <button class="btn btn-danger btn-sm row-delete delete-fixture">Delete</button>
+        </div>
+      </div>
+    `).join("");
+
+    container.querySelectorAll(".fixture-row").forEach(row => {
+      const id = row.dataset.id;
+      const fixture = state.fixtures.find(f => f.id === id);
+
+      row.querySelectorAll("[data-field]").forEach(input => {
+        input.addEventListener("focus", function () { this.select(); });
+        input.addEventListener("touchend", function () { this.focus(); }, { passive: true });
+        input.addEventListener("input", () => {
+          const cleaned = input.value.replace(/[^0-9]/g, "");
+          if (input.value !== cleaned) input.value = cleaned;
+          fixture[input.dataset.field] = cleaned === "" ? "" : Number(cleaned);
+        });
+      });
+
+      row.querySelector(".delete-fixture").onclick = () => {
+        if (confirm(`Delete ${fixture.home} vs ${fixture.away}?`)) {
+          const deletedGw = fixture.gw;
+          state.fixtures = state.fixtures.filter(f => f.id !== id);
+          markDirty({ fixturesMeta: true, gw: deletedGw }, "Fixture deleted", true);
+        }
+      };
+    });
+  }
+
+  function renderLeaderboard() {
+    const rows = calculateTable();
+    document.getElementById("leaderboardBody").innerHTML = rows.map((row, i) => `
+      <tr>
+        <td><span class="rank ${i < 3 ? `rank-${i+1}` : ""}">${i+1}</span></td>
+        <td class="player-name ${row.name === currentUser ? "is-you" : ""}">${escapeHtml(row.name)}</td>
+        <td><strong>${row.points}</strong></td>
+        <td class="hide-mobile">${row.exact}</td>
+        <td><strong>${row.exactRate.toFixed(1)}%</strong></td>
+        <td class="hide-mobile">${row.correct}</td>
+        <td><strong>${row.correctResultRate.toFixed(1)}%</strong></td>
+        <td>${row.gwWins}</td>
+      </tr>
+    `).join("");
+  }
+
+  function renderAccuracy() {
+    const rows = calculateTable();
+    const body = document.getElementById("accuracyBody");
+
+    body.innerHTML = rows.map(row => `
+      <tr>
+        <td class="player-name ${row.name === currentUser ? "is-you" : ""}">${escapeHtml(row.name)}</td>
+        <td>${row.completedPredictions}</td>
+        <td>${row.exact}</td>
+        <td><strong>${row.exactRate.toFixed(1)}%</strong></td>
+        <td>${row.exact + row.correct}</td>
+        <td><strong>${row.correctResultRate.toFixed(1)}%</strong></td>
+      </tr>
+    `).join("");
+  }
+
+  function renderGameweekWinners() {
+    const data = calculateGameweekData();
+    const body = document.getElementById("gameweekWinnersBody");
+
+    if (!data.length) {
+      body.innerHTML = `<tr><td colspan="4">No gameweeks available.</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = data.map(gw => {
+      if (!gw.completed) {
+        return `<tr><td>GW ${gw.gw}</td><td>—</td><td>0</td><td>0 / ${gw.fixtures.length}</td></tr>`;
+      }
+      const max = Math.max(...gw.scores.map(s => s.points));
+      const winners = gw.scores.filter(s => s.points === max).map(s => s.name).join(", ");
+      return `<tr><td><strong>GW ${gw.gw}</strong></td><td>${escapeHtml(winners)}</td><td><strong>${max}</strong></td><td>${gw.completed} / ${gw.fixtures.length}</td></tr>`;
+    }).join("");
+  }
+
+  function renderLatestWinner() {
+    const completed = calculateGameweekData().filter(g => g.completed > 0).sort((a,b) => b.gw - a.gw);
+    const box = document.getElementById("latestWinner");
+
+    if (!completed.length) {
+      box.className = "empty";
+      box.innerHTML = "Enter match results to calculate a winner.";
+      return;
+    }
+
+    const latest = completed[0];
+    const max = Math.max(...latest.scores.map(s => s.points));
+    const winners = latest.scores.filter(s => s.points === max).map(s => s.name);
+
+    box.className = "winner-card";
+    box.innerHTML = `
+      <div class="mini-note">Gameweek ${latest.gw}</div>
+      <div class="winner-name">${escapeHtml(winners.join(" & "))}</div>
+      <div style="margin-top:7px"><strong>${max} points</strong> from ${latest.completed} completed match${latest.completed === 1 ? "" : "es"}.</div>
+    `;
+  }
+
+  function renderStats() {
+    const table = calculateTable();
+    const completed = state.fixtures.filter(f => isScore(f.actualHome) && isScore(f.actualAway)).length;
+
+    document.getElementById("statLeader").textContent = (table[0] && table[0].name) || "—";
+    document.getElementById("statLeaderPoints").textContent = (table[0] && table[0].points) || 0;
+    document.getElementById("statCompleted").textContent = completed;
+    document.getElementById("statGameweek").textContent = selectedGw;
+  }
+
+  function renderPlayerInputs() {
+    const wrap = document.getElementById("playerNameInputs");
+    wrap.innerHTML = state.players.map((p, i) => `
+      <div class="name-card">
+        <label>Player ${i+1}<input type="text" data-player-name="${i}" value="${escapeAttr(p.name)}"></label>
+        <div class="row-btns">
+          ${state.players.length > 1 ? `<button class="btn btn-muted btn-sm remove-player" data-remove-player="${i}" type="button">Remove</button>` : ""}
+          ${p.pin ? `<button class="btn btn-muted btn-sm reset-pin" data-reset-pin="${i}" type="button">Reset PIN</button>` : `<span class="mini-note">No PIN set yet</span>`}
+        </div>
+      </div>
+    `).join("");
+
+    wrap.querySelectorAll("[data-remove-player]").forEach(button => {
+      button.onclick = () => removePlayer(Number(button.dataset.removePlayer));
+    });
+    wrap.querySelectorAll("[data-reset-pin]").forEach(button => {
+      button.onclick = () => resetPin(Number(button.dataset.resetPin));
+    });
+  }
+
+  function removePlayer(index) {
+    const player = state.players[index];
+    if (!confirm(`Remove ${player.name} and all of their predictions?`)) return;
+
+    state.players.splice(index, 1);
+    state.fixtures.forEach(fixture => {
+      if (fixture.predictions) delete fixture.predictions[player.name];
+    });
+
+    const allGws = [...new Set(state.fixtures.map(f => Number(f.gw)))];
+    allGws.forEach(gw => markDirty({ gw }, "Player removed", false));
+    markDirty({ players: true }, "Player removed", true);
+
+    if (currentUser === player.name) {
+      logout();
+    }
+  }
+
+  function resetPin(index) {
+    const player = state.players[index];
+    if (!confirm(`Reset the PIN for ${player.name}? They'll set a new one next time they log in.`)) return;
+    player.pin = "";
+    markDirty({ players: true }, "PIN reset", true);
+  }
+
+  function renderFixtureSummary() {
+    const data = calculateGameweekData();
+    const summary = document.getElementById("fixtureSummary");
+    if (!data.length) {
+      summary.innerHTML = `<div class="empty">No fixtures added.</div>`;
+      return;
+    }
+    summary.innerHTML = data.map(g => `
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+        <strong>Gameweek ${g.gw}</strong><span>${g.fixtures.length} fixture${g.fixtures.length === 1 ? "" : "s"}</span>
+      </div>
+    `).join("");
+  }
+
+  function renderAllGuesses() {
+    const thead = document.getElementById("allGuessesHead");
+    const tbody = document.getElementById("allGuessesBody");
+    const fixtures = state.fixtures.filter(f => Number(f.gw) === Number(selectedGw));
+
+    thead.innerHTML = `
+      <tr>
+        <th>Fixture</th>
+        <th>Actual</th>
+        ${state.players.map(p => `<th>${escapeHtml(p.name)}${p.name === currentUser ? " (you)" : ""}</th>`).join("")}
+      </tr>
+    `;
+
+    if (!fixtures.length) {
+      tbody.innerHTML = `<tr><td colspan="${state.players.length + 2}">No fixtures have been added for Gameweek ${selectedGw}.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = fixtures.map(f => {
+      const ownPrediction = (f.predictions && f.predictions[currentUser]) || {};
+      const hasSavedOwnPrediction = isScore(ownPrediction.home) && isScore(ownPrediction.away);
+      const hasActual = isScore(f.actualHome) && isScore(f.actualAway);
+      const actualText = hasActual ? `${f.actualHome}–${f.actualAway}` : "—";
+
+      if (!hasSavedOwnPrediction) {
+        return `
+          <tr>
+            <td><strong>${badgeImg(f.home,16)}${escapeHtml(f.home)} v ${escapeHtml(f.away)}${badgeImg(f.away,16)}</strong></td>
+            <td colspan="${state.players.length + 1}" class="mini-note">Save your own prediction for this fixture to reveal everyone's guesses.</td>
+          </tr>
+        `;
+      }
+
+      const cells = state.players.map(p => {
+        const pred = (f.predictions && f.predictions[p.name]) || {};
+        const text = (isScore(pred.home) && isScore(pred.away)) ? `${pred.home}–${pred.away}` : "—";
+        const score = pointsFor(f, p.name);
+        const cls = score.points === 30 ? "points-30" : score.points === 10 ? "points-10" : "";
+        return `<td><span class="points-badge ${cls}" style="min-width:0">${text}</span></td>`;
+      }).join("");
+
+      return `
+        <tr>
+          <td><strong>${badgeImg(f.home,16)}${escapeHtml(f.home)} v ${escapeHtml(f.away)}${badgeImg(f.away,16)}</strong></td>
+          <td>${actualText}</td>
+          ${cells}
+        </tr>
+      `;
+    }).join("");
+  }
+
+  function renderAll() {
+    renderGameweekSelect();
+    renderFixtures();
+    renderResultsEntry();
+    renderAllGuesses();
+    renderLeaderboard();
+    renderAccuracy();
+    renderGameweekWinners();
+    renderLatestWinner();
+    renderStats();
+    renderPlayerInputs();
+    renderFixtureSummary();
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value);
+  }
+
+  document.getElementById("saveAllBtn").onclick = () => {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    markDirty({ gw: selectedGw }, "Predictions saved", true);
+  };
+  document.getElementById("saveResultsBtn").onclick = () => {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    markDirty({ gw: selectedGw }, "Results saved", true);
+  };
+  document.getElementById("clearGwResultsBtn").onclick = () => {
+    if (!confirm(`Clear all actual results for Gameweek ${selectedGw}?`)) return;
+    state.fixtures.filter(f => Number(f.gw) === Number(selectedGw)).forEach(f => {
+      f.actualHome = "";
+      f.actualAway = "";
+    });
+    markDirty({ gw: selectedGw }, "Gameweek results cleared", true);
+  };
+
+  document.getElementById("saveNamesBtn").onclick = () => {
+    const renames = [];
+    const seen = new Set();
+    let duplicate = false;
+
+    document.querySelectorAll("[data-player-name]").forEach(input => {
+      const i = Number(input.dataset.playerName);
+      const oldName = state.players[i].name;
+      const newName = input.value.trim() || oldName;
+      const key = newName.toLowerCase();
+      if (seen.has(key)) duplicate = true;
+      seen.add(key);
+      if (newName !== oldName) renames.push([oldName, newName]);
+      state.players[i].name = newName;
+    });
+
+    if (duplicate) {
+      alert("Two players can't have the same name. Names were not saved.");
+      return;
+    }
+
+    renames.forEach(([oldName, newName]) => {
+      state.fixtures.forEach(f => {
+        if (f.predictions && Object.prototype.hasOwnProperty.call(f.predictions, oldName)) {
+          f.predictions[newName] = f.predictions[oldName];
+          delete f.predictions[oldName];
+        }
+      });
+      if (currentUser === oldName) currentUser = newName;
+    });
+
+    if (currentUser) {
+      document.getElementById("currentUserPill").innerHTML = `Logged in as <strong>${escapeHtml(currentUser)}</strong>`;
+    }
+
+    const gwsTouchedByRename = renames.length ? [...new Set(state.fixtures.map(f => Number(f.gw)))] : [];
+    gwsTouchedByRename.forEach(gw => markDirty({ gw }, "Player names saved", false));
+    markDirty({ players: true }, "Player names saved", true);
+  };
+
+  document.getElementById("addPlayerBtn").onclick = () => {
+    const nextNumber = state.players.length + 1;
+    const name = prompt("Enter the new player's name:", `Player ${nextNumber}`);
+    if (name === null) return;
+    const trimmed = name.trim() || `Player ${nextNumber}`;
+    if (state.players.some(p => p.name.toLowerCase() === trimmed.toLowerCase())) {
+      alert("That name is already in the league.");
+      return;
+    }
+    state.players.push({ name: trimmed, pin: "" });
+    markDirty({ players: true }, "Player added", true);
+  };
+
+  document.getElementById("addFixtureBtn").onclick = () => {
+    const gw = Number(document.getElementById("newFixtureGw").value);
+    const home = document.getElementById("newHomeTeam").value.trim();
+    const away = document.getElementById("newAwayTeam").value.trim();
+
+    if (!gw || gw < 1 || gw > 38 || !home || !away) {
+      alert("Enter a gameweek from 1 to 38 and both team names.");
+      return;
+    }
+
+    state.fixtures.push({
+      id: makeId(),
+      gw,
+      home,
+      away,
+      actualHome: "",
+      actualAway: "",
+      predictions: {}
+    });
+
+    selectedGw = gw;
+    document.getElementById("newHomeTeam").value = "";
+    document.getElementById("newAwayTeam").value = "";
+    markDirty({ fixturesMeta: true }, "Fixture added", true);
+  };
+
+  document.getElementById("exportBtn").onclick = () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], {type: "application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "PL-2026-27-prediction-league-data.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  document.getElementById("importFile").onchange = event => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const imported = JSON.parse(reader.result);
+        if (!Array.isArray(imported.players) || imported.players.length < 1 || !Array.isArray(imported.fixtures)) {
+          throw new Error("Invalid file");
+        }
+        // Support importing an older export that used plain name strings.
+        imported.players = imported.players.map(p => typeof p === "string" ? { name: p, pin: "" } : p);
+        state = imported;
+        selectedGw = 1;
+        const allImportedGws = [...new Set(state.fixtures.map(f => Number(f.gw)))];
+        allImportedGws.forEach(gw => markDirty({ gw }, "Data imported", false));
+        markDirty({ players: true, fixturesMeta: true }, "Data imported", true);
+      } catch {
+        alert("This file is not a valid prediction league export.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  document.getElementById("resetBtn").onclick = () => {
+    if (!confirm("Reset all players, fixtures, predictions and results for EVERYONE? This cannot be undone.")) return;
+    state = cloneData(defaultState);
+    selectedGw = 1;
+    const allResetGws = [...new Set(state.fixtures.map(f => Number(f.gw)))];
+    allResetGws.forEach(gw => markDirty({ gw }, "Everything reset", false));
+    markDirty({ players: true, fixturesMeta: true }, "Everything reset", true);
+    logout();
+  };
+
+  // ---------- Boot ----------
+  //
+  // Once a league has been created and shared, set DEFAULT_BUCKET_ID below
+  // to that fixed code — every copy of this file will then connect to the
+  // same league automatically, with no setup step at all.
+  const DEFAULT_BUCKET_ID = "";
+
+  async function startApp() {
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("loginLoading").style.display = "block";
+    document.getElementById("loginBody").style.display = "none";
+    await loadLeague();
+    renderLoginScreen();
+  }
+
+  (async function init() {
+    if (DEFAULT_BUCKET_ID) {
+      setBucketId(DEFAULT_BUCKET_ID);
+    } else if (!getBucketId()) {
+      // First-ever open of this file on this device — quietly create a
+      // shared league in the background, no screen or button needed.
+      try {
+        const bucketId = await cloudCreateBucket();
+        setBucketId(bucketId);
+      } catch (e) {
+        console.error("Couldn't set up cloud sync:", e);
+      }
+    }
+    startApp();
+  })();
+</script>
+</body>
+</html>
