@@ -493,6 +493,61 @@
       line-height: 1.5;
     }
 
+    .message-board-list {
+      display: grid;
+      gap: 10px;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    .message-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(255,255,255,.03);
+    }
+
+    .message-item .message-body { flex: 1; min-width: 0; }
+
+    .message-item .message-meta {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+      flex-wrap: wrap;
+    }
+
+    .message-item .message-author {
+      font-weight: 800;
+    }
+
+    .message-item .message-author.is-you { color: var(--accent-2); }
+
+    .message-item .message-time {
+      color: var(--muted);
+      font-size: .76rem;
+    }
+
+    .message-item .message-text {
+      margin-top: 3px;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .message-item .message-delete {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: .78rem;
+      padding: 2px 6px;
+      flex-shrink: 0;
+    }
+
+    .message-item .message-delete:hover { color: var(--danger); }
+
     .name-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
@@ -667,7 +722,7 @@
 <main>
   <div class="card" style="margin-bottom:18px;border-left:5px solid var(--accent-2)">
     <strong>This league syncs over the cloud:</strong>
-    Everyone connected with the same league code sees the same predictions and results, wherever they open this file.
+    Everyone who opens this same web link sees the same predictions and results.
     Since there's no live push, tap <strong>↻ Refresh</strong> any time to pull the latest — for example, right after
     someone else says they've saved a prediction or entered a result.
   </div>
@@ -748,6 +803,16 @@
           </table>
         </div>
       </div>
+
+      <div class="card span-12">
+        <h2>Message Board</h2>
+        <p class="mini-note">Leave a note for the group — banter, updates, whatever.</p>
+        <div class="controls" style="margin-bottom:14px">
+          <input id="newMessageInput" type="text" placeholder="Say something to the league…" style="flex:1;min-width:220px" maxlength="500">
+          <button class="btn btn-primary" id="postMessageBtn" type="button">Post</button>
+        </div>
+        <div id="messageBoardList" class="message-board-list"></div>
+      </div>
     </div>
   </section>
 
@@ -820,15 +885,6 @@
 
   <section id="setup" class="view">
     <div class="grid">
-      <div class="card span-12" style="border-left:5px solid var(--accent-2)">
-        <h2>League Code</h2>
-        <p class="mini-note">Share this code with everyone else so they can connect to the same league. They'll paste it into the "Join this league" box the first time they open the file.</p>
-        <div class="controls">
-          <input id="leagueCodeDisplay" type="text" readonly style="flex:1;min-width:220px;font-weight:800">
-          <button class="btn btn-secondary" id="copyLeagueCodeBtn" type="button">Copy code</button>
-        </div>
-      </div>
-
       <div class="card span-12">
         <h2>Players</h2>
         <div id="playerNameInputs" class="name-grid"></div>
@@ -856,7 +912,7 @@
 
       <div class="card span-12 danger-zone">
         <h2>Data Tools</h2>
-        <p class="mini-note">Export now and then as an offline backup — this data lives in the cloud, so losing your league code would mean losing access.</p>
+        <p class="mini-note">Export now and then as an offline backup — this data lives in this repo's GitHub history.</p>
         <div class="controls">
           <button class="btn btn-muted" id="exportBtn">Export data</button>
           <label>
@@ -1304,7 +1360,8 @@
       { id: 'fixture-preset-38-378', gw: 38, home: 'Liverpool', away: 'AFC Bournemouth', actualHome: "", actualAway: "", predictions: {} },
       { id: 'fixture-preset-38-379', gw: 38, home: 'Manchester United', away: 'Fulham', actualHome: "", actualAway: "", predictions: {} },
       { id: 'fixture-preset-38-380', gw: 38, home: 'Sunderland', away: 'Manchester City', actualHome: "", actualAway: "", predictions: {} }
-    ]
+    ],
+    messages: []
   };
 
   let state = cloneData(defaultState);
@@ -1335,136 +1392,289 @@
   const ADMIN_NAME = "Jason";
   let pendingLoginName = null;
 
-  // ---------- Cloud sync (kvdb.io) ----------
+  // ---------- Cloud sync (GitHub Contents API) ----------
   //
-  // Real cross-device sync needs an actual internet backend — a file shared
-  // via OneDrive doesn't sync what's saved *inside* it (localStorage is
-  // per-browser). kvdb.io is a free, no-signup key-value store built for
-  // exactly this: a static page talking to it directly over fetch().
+  // Data lives as one JSON file inside this same GitHub repo, right next to
+  // the site itself. No bucket, no code to create or share — every device
+  // that opens this page just reads/writes the same known file path.
   //
-  // The bucket ID is the "league code" — one person creates it, everyone
-  // else joins with the same code. It's stored locally per-device (just a
-  // pointer to the shared bucket), while the actual league data — players,
-  // fixtures, predictions, results — all lives in the cloud bucket, split
-  // across small keys since each value is capped at 16KB:
-  //   "players"      -> [{name, pin}, ...]
-  //   "fixtures-meta" -> [{id, gw, home, away}, ...]
-  //   "gw-data:<N>"   -> { [fixtureId]: {actualHome, actualAway, predictions} }
+  // The token below is scoped ONLY to this one repo (Contents: read/write),
+  // nothing else on the account — worth knowing since this is a public
+  // page, so the token is technically visible to anyone who views source.
 
-  const CLOUD_BASE = "https://kvdb.io";
-  const BUCKET_LOCAL_KEY = "pl-league-bucket-id";
+  const GITHUB_OWNER = "JasonJoechim";
+  const GITHUB_REPO = "pl-predictions";
+  const GITHUB_BRANCH = "main";
+  const GITHUB_FILE_PATH = "data/league-data.json";
+  const GITHUB_TOKEN = "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";
 
-  function getBucketId() {
-    try { return localStorage.getItem(BUCKET_LOCAL_KEY) || null; } catch (e) { return null; }
+  const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
+
+  function b64EncodeUnicode(str) {
+    return btoa(unescape(encodeURIComponent(str)));
   }
-  function setBucketId(id) {
-    try { localStorage.setItem(BUCKET_LOCAL_KEY, id); } catch (e) { /* ignore */ }
-  }
-
-  async function cloudCreateBucket() {
-    const res = await fetch(CLOUD_BASE, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: "email=" + encodeURIComponent("pl-prediction-league-" + Date.now() + "@example.com")
-    });
-    if (!res.ok) throw new Error("Couldn't create a league (status " + res.status + ")");
-    const id = (await res.text()).trim();
-    if (!id) throw new Error("No league code came back — try again");
-    return id;
+  function b64DecodeUnicode(str) {
+    return decodeURIComponent(escape(atob(str.replace(/\n/g, ""))));
   }
 
-  async function cloudGetRaw(key) {
-    const bucket = getBucketId();
-    if (!bucket) throw new Error("Not connected to a league yet");
-    const res = await fetch(`${CLOUD_BASE}/${bucket}/${encodeURIComponent(key)}`, { cache: "no-store" });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error("Cloud read failed (status " + res.status + ")");
-    return await res.text();
-  }
-
-  async function cloudSetRaw(key, value) {
-    const bucket = getBucketId();
-    if (!bucket) throw new Error("Not connected to a league yet");
-    const res = await fetch(`${CLOUD_BASE}/${bucket}/${encodeURIComponent(key)}`, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: value
-    });
-    if (!res.ok) throw new Error("Cloud save failed (status " + res.status + ")");
-    return true;
-  }
-
-  function fixturesMetaFromState() {
-    return state.fixtures.map(f => ({ id: f.id, gw: f.gw, home: f.home, away: f.away }));
-  }
-
-  function gwDataFromState(gw) {
-    const out = {};
-    state.fixtures.filter(f => Number(f.gw) === Number(gw)).forEach(f => {
-      out[f.id] = { actualHome: f.actualHome, actualAway: f.actualAway, predictions: f.predictions || {} };
-    });
-    return out;
-  }
+  let currentFileSha = null;
 
   async function loadLeague() {
-    let players = null;
-    let fixturesMeta = null;
-
     try {
-      const raw = await cloudGetRaw("players");
-      if (raw) players = JSON.parse(raw);
-    } catch (e) { console.error("Couldn't load players from the cloud:", e); }
+      const res = await fetch(`${GITHUB_API_URL}?ref=${GITHUB_BRANCH}`, {
+        headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github+json" },
+        cache: "no-store"
+      });
 
-    try {
-      const raw = await cloudGetRaw("fixtures-meta");
-      if (raw) fixturesMeta = JSON.parse(raw);
-    } catch (e) { console.error("Couldn't load fixtures from the cloud:", e); }
-
-    const hadPlayers = Array.isArray(players) && players.length > 0;
-    const hadFixtures = Array.isArray(fixturesMeta) && fixturesMeta.length > 0;
-
-    if (!hadPlayers) players = cloneData(defaultState.players);
-    if (!hadFixtures) fixturesMeta = cloneData(defaultState.fixtures).map(f => ({ id: f.id, gw: f.gw, home: f.home, away: f.away }));
-
-    const gameweeks = [...new Set(fixturesMeta.map(f => Number(f.gw)))].sort((a,b) => a-b);
-    const gwResults = await Promise.allSettled(gameweeks.map(gw => cloudGetRaw(`gw-data:${gw}`)));
-    const gwDataByGw = {};
-    gameweeks.forEach((gw, i) => {
-      const result = gwResults[i];
-      if (result.status === "fulfilled" && result.value) {
-        try { gwDataByGw[gw] = JSON.parse(result.value); } catch (e) { gwDataByGw[gw] = {}; }
-      } else {
-        gwDataByGw[gw] = {};
+      if (res.status === 404) {
+        // File genuinely doesn't exist yet — first time this league has ever loaded.
+        state = cloneData(defaultState);
+        currentFileSha = null;
+        markDirty("Saved", true);
+        return { ok: true };
       }
-    });
 
-    state = {
-      players,
-      fixtures: fixturesMeta.map(f => {
-        const extra = (gwDataByGw[Number(f.gw)] || {})[f.id] || {};
-        return {
-          id: f.id, gw: f.gw, home: f.home, away: f.away,
-          actualHome: extra.actualHome ?? "", actualAway: extra.actualAway ?? "", predictions: extra.predictions || {}
-        };
-      })
-    };
+      if (!res.ok) {
+        let reason = "status " + res.status;
+        try {
+          const errBody = await res.json();
+          if (errBody && errBody.message) reason += ": " + errBody.message;
+        } catch (e) { /* ignore */ }
+        return { ok: false, reason };
+      }
 
-    if (!hadPlayers) markDirty({ players: true }, "Saved", true);
-    if (!hadFixtures) markDirty({ fixturesMeta: true }, "Saved", true);
+      const data = await res.json();
+      currentFileSha = data.sha;
+      const parsed = JSON.parse(b64DecodeUnicode(data.content));
+      if (Array.isArray(parsed.players) && Array.isArray(parsed.fixtures)) {
+        if (!Array.isArray(parsed.messages)) parsed.messages = [];
+        state = parsed;
+      } else {
+        state = cloneData(defaultState);
+      }
+      return { ok: true };
+    } catch (e) {
+      console.error("Couldn't load league data from GitHub:", e);
+      return { ok: false, reason: e.message || "network error" };
+    }
   }
 
-  // ---------- Save queue: only pushes the small pieces that actually changed ----------
+  async function persistLeague(attempt = 1) {
+    try {
+      const body = {
+        message: `League update ${new Date().toISOString()}`,
+        content: b64EncodeUnicode(JSON.stringify(state)),
+        branch: GITHUB_BRANCH
+      };
+      if (currentFileSha) body.sha = currentFileSha;
 
-  let dirty = { players: false, fixturesMeta: false, gws: new Set() };
+      const res = await fetch(GITHUB_API_URL, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Accept: "application/vnd.github+json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      if ((res.status === 409 || res.status === 422) && attempt < 4) {
+        // Someone else saved in between — pick up their latest sha and retry,
+        // with a short backoff so we don't just collide again immediately.
+        await new Promise(r => setTimeout(r, 300 * attempt));
+        const fresh = await fetch(`${GITHUB_API_URL}?ref=${GITHUB_BRANCH}`, {
+          headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github+json" },
+          cache: "no-store"
+        });
+        if (fresh.ok) currentFileSha = (await fresh.json()).sha;
+        return persistLeague(attempt + 1);
+      }
+
+      if (!res.ok) {
+        let reason = "status " + res.status;
+        try {
+          const errBody = await res.json();
+          if (errBody && errBody.message) reason += ": " + errBody.message;
+        } catch (e) { /* ignore, keep the plain status */ }
+        return { ok: false, reason };
+      }
+
+      const data = await res.json();
+      currentFileSha = data.content.sha;
+      return { ok: true };
+    } catch (e) {
+      console.error("Couldn't save to GitHub:", e);
+      return { ok: false, reason: e.message || "network error" };
+    }
+  }
+
+  // ---------- Message board: always saves against the freshest remote data ----------
+  //
+  // Predictions/results use the debounced save queue below, which is fine
+  // since edits from the same person are rare and close together. Chat
+  // messages are more likely to land close together across different
+  // people, so posting/deleting always re-fetches the latest data first and
+  // merges the change in, rather than risking overwriting someone else's
+  // message with a stale local copy.
+
+  const MAX_MESSAGES = 200;
+
+  async function mutateRemoteState(mutatorFn, attempt = 1) {
+    try {
+      const res = await fetch(`${GITHUB_API_URL}?ref=${GITHUB_BRANCH}`, {
+        headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github+json" },
+        cache: "no-store"
+      });
+
+      let freshState = cloneData(defaultState);
+      let sha = null;
+      if (res.status === 404) {
+        freshState = cloneData(defaultState);
+        sha = null;
+      } else if (res.ok) {
+        const data = await res.json();
+        sha = data.sha;
+        const parsed = JSON.parse(b64DecodeUnicode(data.content));
+        if (Array.isArray(parsed.players) && Array.isArray(parsed.fixtures)) {
+          if (!Array.isArray(parsed.messages)) parsed.messages = [];
+          freshState = parsed;
+        }
+      } else {
+        return { ok: false, reason: "status " + res.status };
+      }
+
+      mutatorFn(freshState);
+
+      const body = {
+        message: `Message board update ${new Date().toISOString()}`,
+        content: b64EncodeUnicode(JSON.stringify(freshState)),
+        branch: GITHUB_BRANCH
+      };
+      if (sha) body.sha = sha;
+
+      const putRes = await fetch(GITHUB_API_URL, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Accept: "application/vnd.github+json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      if ((putRes.status === 409 || putRes.status === 422) && attempt < 4) {
+        await new Promise(r => setTimeout(r, 300 * attempt));
+        return mutateRemoteState(mutatorFn, attempt + 1);
+      }
+      if (!putRes.ok) return { ok: false, reason: "status " + putRes.status };
+
+      const putData = await putRes.json();
+      state = freshState;
+      currentFileSha = putData.content.sha;
+      return { ok: true };
+    } catch (e) {
+      console.error("Message board save failed:", e);
+      return { ok: false, reason: e.message || "network error" };
+    }
+  }
+
+  async function postMessage(text) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const message = {
+      id: "msg-" + Date.now() + "-" + Math.random().toString(16).slice(2),
+      author: currentUser,
+      text: trimmed,
+      timestamp: Date.now()
+    };
+    const result = await mutateRemoteState(s => {
+      s.messages.push(message);
+      if (s.messages.length > MAX_MESSAGES) s.messages = s.messages.slice(-MAX_MESSAGES);
+    });
+    showToast(result.ok ? "Posted" : `Couldn't post (${result.reason})`);
+    renderAll();
+  }
+
+  async function deleteMessage(id) {
+    const result = await mutateRemoteState(s => {
+      s.messages = s.messages.filter(m => m.id !== id);
+    });
+    showToast(result.ok ? "Message deleted" : `Couldn't delete (${result.reason})`);
+    renderAll();
+  }
+
+  function formatRelativeTime(timestamp) {
+    const diffMs = Date.now() - timestamp;
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(timestamp).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  }
+
+  // ---------- Message board polling ----------
+  //
+  // GitHub's API has no live push, so this polls in the background and
+  // merges in only the messages array — it never touches players/fixtures,
+  // so it can't disrupt anything you're mid-typing elsewhere in the app.
+
+  const MESSAGE_POLL_INTERVAL = 15000;
+  let messagePollTimer = null;
+
+  async function pollMessages() {
+    try {
+      const res = await fetch(`${GITHUB_API_URL}?ref=${GITHUB_BRANCH}`, {
+        headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github+json" },
+        cache: "no-store"
+      });
+      if (!res.ok) return; // silent — this is a background poll, transient failures aren't worth a toast
+
+      const data = await res.json();
+      const parsed = JSON.parse(b64DecodeUnicode(data.content));
+      const freshMessages = Array.isArray(parsed.messages) ? parsed.messages : [];
+
+      if (JSON.stringify(freshMessages) !== JSON.stringify(state.messages || [])) {
+        state.messages = freshMessages;
+        currentFileSha = data.sha;
+        renderMessageBoard();
+      }
+    } catch (e) {
+      // silent — background polling shouldn't interrupt the user
+    }
+  }
+
+  function startMessagePolling() {
+    if (messagePollTimer) return;
+    messagePollTimer = setInterval(pollMessages, MESSAGE_POLL_INTERVAL);
+  }
+
+  function stopMessagePolling() {
+    clearInterval(messagePollTimer);
+    messagePollTimer = null;
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopMessagePolling();
+    } else if (currentUser) {
+      startMessagePolling();
+      pollMessages(); // catch up immediately on returning to the tab
+    }
+  });
+
+  // ---------- Save queue: debounced so rapid edits collapse into one write ----------
+
   let saveDebounceTimer = null;
   let saveInProgress = false;
+  let saveQueued = false;
   let pendingMessage = "Saved";
 
-  function markDirty(parts = {}, message = "Saved", immediate = false) {
-    if (parts.players) dirty.players = true;
-    if (parts.fixturesMeta) dirty.fixturesMeta = true;
-    if (parts.gw !== undefined && parts.gw !== null) dirty.gws.add(Number(parts.gw));
+  function markDirty(message = "Saved", immediate = false) {
     pendingMessage = message;
+    saveQueued = true;
     clearTimeout(saveDebounceTimer);
     if (immediate) {
       flushSave();
@@ -1474,32 +1684,21 @@
   }
 
   function hasPendingSave() {
-    return dirty.players || dirty.fixturesMeta || dirty.gws.size > 0;
+    return saveQueued;
   }
 
   async function flushSave() {
     clearTimeout(saveDebounceTimer);
     if (saveInProgress) return;
     saveInProgress = true;
-    let anyFailure = false;
 
-    while (hasPendingSave()) {
-      const doPlayers = dirty.players; dirty.players = false;
-      const doMeta = dirty.fixturesMeta; dirty.fixturesMeta = false;
-      const gws = [...dirty.gws]; dirty.gws.clear();
-
-      try {
-        if (doPlayers) await cloudSetRaw("players", JSON.stringify(state.players));
-        if (doMeta) await cloudSetRaw("fixtures-meta", JSON.stringify(fixturesMetaFromState()));
-        for (const gw of gws) await cloudSetRaw(`gw-data:${gw}`, JSON.stringify(gwDataFromState(gw)));
-      } catch (e) {
-        anyFailure = true;
-        console.error("Cloud sync failed:", e);
-      }
+    while (saveQueued) {
+      saveQueued = false;
+      const messageToShow = pendingMessage;
+      const result = await persistLeague();
+      showToast(result.ok ? messageToShow : `Couldn't save (${result.reason}) — tap Save to try again`);
+      renderAll();
     }
-
-    showToast(anyFailure ? "Couldn't sync to the cloud — check your connection and try again" : pendingMessage);
-    renderAll();
     saveInProgress = false;
   }
 
@@ -1553,7 +1752,7 @@
         return;
       }
       player.pin = pin;
-      markDirty({ players: true }, "Saved", true);
+      markDirty("Saved", true);
       completeLogin(player.name);
       return;
     }
@@ -1573,7 +1772,6 @@
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("app").style.display = "block";
     document.getElementById("currentUserPill").innerHTML = `Logged in as <strong>${escapeHtml(currentUser)}</strong>`;
-    document.getElementById("leagueCodeDisplay").value = getBucketId() || "";
 
     const isAdmin = currentUser === ADMIN_NAME;
     const adminOnlyViews = ["results", "setup"];
@@ -1593,10 +1791,12 @@
 
     renderTabs();
     renderAll();
+    startMessagePolling();
   }
 
   function logout() {
     if (hasPendingSave()) flushSave();
+    stopMessagePolling();
     currentUser = null;
     document.getElementById("app").style.display = "none";
     document.getElementById("loginScreen").style.display = "flex";
@@ -1613,7 +1813,7 @@
       return;
     }
     state.players.push({ name: trimmed, pin: "" });
-    markDirty({ players: true }, "Saved", true);
+    markDirty("Saved", true);
     renderLoginScreen();
     beginPinStep(trimmed);
   };
@@ -1628,30 +1828,29 @@
   });
   document.getElementById("logoutBtn").onclick = logout;
 
+  document.getElementById("postMessageBtn").onclick = async () => {
+    const input = document.getElementById("newMessageInput");
+    const text = input.value;
+    if (!text.trim()) return;
+    const btn = document.getElementById("postMessageBtn");
+    btn.disabled = true;
+    input.value = "";
+    await postMessage(text);
+    btn.disabled = false;
+  };
+  document.getElementById("newMessageInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("postMessageBtn").click();
+  });
+
   document.getElementById("refreshBtn").onclick = async () => {
     const btn = document.getElementById("refreshBtn");
     btn.disabled = true;
     btn.textContent = "Refreshing…";
-    try {
-      await loadLeague();
-      showToast("Refreshed");
-    } catch (e) {
-      console.error("Refresh failed:", e);
-      showToast("Couldn't refresh — check your connection");
-    }
+    const result = await loadLeague();
+    showToast(result.ok ? "Refreshed" : `Couldn't refresh (${result.reason})`);
     renderAll();
     btn.disabled = false;
     btn.textContent = "↻ Refresh";
-  };
-
-  document.getElementById("copyLeagueCodeBtn").onclick = async () => {
-    const code = getBucketId() || "";
-    try {
-      await navigator.clipboard.writeText(code);
-      showToast("League code copied");
-    } catch (e) {
-      showToast("Couldn't copy — select and copy it manually");
-    }
   };
 
   // ---------- Scoring ----------
@@ -1893,9 +2092,8 @@
 
       row.querySelector(".delete-fixture").onclick = () => {
         if (confirm(`Delete ${fixture.home} vs ${fixture.away}?`)) {
-          const deletedGw = fixture.gw;
           state.fixtures = state.fixtures.filter(f => f.id !== id);
-          markDirty({ fixturesMeta: true, gw: deletedGw }, "Fixture deleted", true);
+          markDirty("Fixture deleted", true);
         }
       };
     });
@@ -2013,9 +2211,7 @@
       if (fixture.predictions) delete fixture.predictions[player.name];
     });
 
-    const allGws = [...new Set(state.fixtures.map(f => Number(f.gw)))];
-    allGws.forEach(gw => markDirty({ gw }, "Player removed", false));
-    markDirty({ players: true }, "Player removed", true);
+    markDirty("Player removed", true);
 
     if (currentUser === player.name) {
       logout();
@@ -2026,7 +2222,7 @@
     const player = state.players[index];
     if (!confirm(`Reset the PIN for ${player.name}? They'll set a new one next time they log in.`)) return;
     player.pin = "";
-    markDirty({ players: true }, "PIN reset", true);
+    markDirty("PIN reset", true);
   }
 
   function renderFixtureSummary() {
@@ -2106,6 +2302,41 @@
     renderStats();
     renderPlayerInputs();
     renderFixtureSummary();
+    renderMessageBoard();
+  }
+
+  function renderMessageBoard() {
+    const list = document.getElementById("messageBoardList");
+    if (!list) return;
+    const messages = [...(state.messages || [])].sort((a, b) => b.timestamp - a.timestamp);
+
+    if (!messages.length) {
+      list.innerHTML = `<div class="empty">No messages yet — be the first to say something.</div>`;
+      return;
+    }
+
+    list.innerHTML = messages.map(m => {
+      const isYou = m.author === currentUser;
+      const canDelete = isYou || currentUser === ADMIN_NAME;
+      return `
+        <div class="message-item">
+          <div class="message-body">
+            <div class="message-meta">
+              <span class="message-author ${isYou ? "is-you" : ""}">${escapeHtml(m.author)}</span>
+              <span class="message-time">${formatRelativeTime(m.timestamp)}</span>
+            </div>
+            <div class="message-text">${escapeHtml(m.text)}</div>
+          </div>
+          ${canDelete ? `<button class="message-delete" type="button" data-delete-msg="${escapeAttr(m.id)}">Delete</button>` : ""}
+        </div>
+      `;
+    }).join("");
+
+    list.querySelectorAll("[data-delete-msg]").forEach(btn => {
+      btn.onclick = () => {
+        if (confirm("Delete this message?")) deleteMessage(btn.dataset.deleteMsg);
+      };
+    });
   }
 
   function escapeHtml(value) {
@@ -2123,11 +2354,11 @@
 
   document.getElementById("saveAllBtn").onclick = () => {
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    markDirty({ gw: selectedGw }, "Predictions saved", true);
+    markDirty("Predictions saved", true);
   };
   document.getElementById("saveResultsBtn").onclick = () => {
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    markDirty({ gw: selectedGw }, "Results saved", true);
+    markDirty("Results saved", true);
   };
   document.getElementById("clearGwResultsBtn").onclick = () => {
     if (!confirm(`Clear all actual results for Gameweek ${selectedGw}?`)) return;
@@ -2135,7 +2366,7 @@
       f.actualHome = "";
       f.actualAway = "";
     });
-    markDirty({ gw: selectedGw }, "Gameweek results cleared", true);
+    markDirty("Gameweek results cleared", true);
   };
 
   document.getElementById("saveNamesBtn").onclick = () => {
@@ -2173,9 +2404,7 @@
       document.getElementById("currentUserPill").innerHTML = `Logged in as <strong>${escapeHtml(currentUser)}</strong>`;
     }
 
-    const gwsTouchedByRename = renames.length ? [...new Set(state.fixtures.map(f => Number(f.gw)))] : [];
-    gwsTouchedByRename.forEach(gw => markDirty({ gw }, "Player names saved", false));
-    markDirty({ players: true }, "Player names saved", true);
+    markDirty("Player names saved", true);
   };
 
   document.getElementById("addPlayerBtn").onclick = () => {
@@ -2188,7 +2417,7 @@
       return;
     }
     state.players.push({ name: trimmed, pin: "" });
-    markDirty({ players: true }, "Player added", true);
+    markDirty("Player added", true);
   };
 
   document.getElementById("addFixtureBtn").onclick = () => {
@@ -2214,7 +2443,7 @@
     selectedGw = gw;
     document.getElementById("newHomeTeam").value = "";
     document.getElementById("newAwayTeam").value = "";
-    markDirty({ fixturesMeta: true }, "Fixture added", true);
+    markDirty("Fixture added", true);
   };
 
   document.getElementById("exportBtn").onclick = () => {
@@ -2240,9 +2469,7 @@
         imported.players = imported.players.map(p => typeof p === "string" ? { name: p, pin: "" } : p);
         state = imported;
         selectedGw = 1;
-        const allImportedGws = [...new Set(state.fixtures.map(f => Number(f.gw)))];
-        allImportedGws.forEach(gw => markDirty({ gw }, "Data imported", false));
-        markDirty({ players: true, fixturesMeta: true }, "Data imported", true);
+        markDirty("Data imported", true);
       } catch {
         alert("This file is not a valid prediction league export.");
       }
@@ -2254,41 +2481,35 @@
     if (!confirm("Reset all players, fixtures, predictions and results for EVERYONE? This cannot be undone.")) return;
     state = cloneData(defaultState);
     selectedGw = 1;
-    const allResetGws = [...new Set(state.fixtures.map(f => Number(f.gw)))];
-    allResetGws.forEach(gw => markDirty({ gw }, "Everything reset", false));
-    markDirty({ players: true, fixturesMeta: true }, "Everything reset", true);
+    markDirty("Everything reset", true);
     logout();
   };
 
   // ---------- Boot ----------
-  //
-  // Once a league has been created and shared, set DEFAULT_BUCKET_ID below
-  // to that fixed code — every copy of this file will then connect to the
-  // same league automatically, with no setup step at all.
-  const DEFAULT_BUCKET_ID = "";
 
-  async function startApp() {
-    document.getElementById("loginScreen").style.display = "flex";
+  async function bootLoad() {
+    document.getElementById("loginLoading").textContent = "Loading league…";
     document.getElementById("loginLoading").style.display = "block";
     document.getElementById("loginBody").style.display = "none";
-    await loadLeague();
+
+    const result = await loadLeague();
+
+    if (!result.ok) {
+      const loading = document.getElementById("loginLoading");
+      loading.innerHTML = `
+        Couldn't load the league (${escapeHtml(result.reason)}).<br>
+        <button class="btn btn-primary" id="bootRetryBtn" style="margin-top:12px">Try again</button>
+      `;
+      document.getElementById("bootRetryBtn").onclick = bootLoad;
+      return;
+    }
+
     renderLoginScreen();
   }
 
-  (async function init() {
-    if (DEFAULT_BUCKET_ID) {
-      setBucketId(DEFAULT_BUCKET_ID);
-    } else if (!getBucketId()) {
-      // First-ever open of this file on this device — quietly create a
-      // shared league in the background, no screen or button needed.
-      try {
-        const bucketId = await cloudCreateBucket();
-        setBucketId(bucketId);
-      } catch (e) {
-        console.error("Couldn't set up cloud sync:", e);
-      }
-    }
-    startApp();
+  (function init() {
+    document.getElementById("loginScreen").style.display = "flex";
+    bootLoad();
   })();
 </script>
 </body>
