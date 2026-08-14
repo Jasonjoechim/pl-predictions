@@ -1406,213 +1406,155 @@
   const ADMIN_NAME = "Jason";
   let pendingLoginName = null;
 
-  // ---------- Cloud sync (GitHub Contents API) ----------
+  // ---------- Cloud sync (Firebase Realtime Database) ----------
   //
-  // Data lives as one JSON file inside this same GitHub repo, right next to
-  // the site itself. No bucket, no code to create or share — every device
-  // that opens this page just reads/writes the same known file path.
+  // No token needed here at all — the database URL isn't a secret (same as
+  // any public API address), and access is controlled by rules on Firebase's
+  // side rather than by hiding a credential. This sidesteps the entire class
+  // of problem we hit with GitHub tokens getting auto-revoked once exposed
+  // in a public page.
   //
-  // The token below is scoped ONLY to this one repo (Contents: read/write),
-  // nothing else on the account — worth knowing since this is a public
-  // page, so the token is technically visible to anyone who views source.
+  // Players/fixtures live as one object at /league (simple last-write-wins,
+  // protected by the debounced+serialized save queue below). Messages live
+  // as a proper Firebase list at /league/messages, using push() to append —
+  // Firebase guarantees each push gets its own unique key, so two people
+  // posting at the same instant can never overwrite each other; no merge
+  // logic needed at all.
 
-  const GITHUB_OWNER = "JasonJoechim";
-  const GITHUB_REPO = "pl-predictions";
-  const GITHUB_BRANCH = "main";
-  const GITHUB_FILE_PATH = "data/league-data.json";
-  const GITHUB_TOKEN = "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";
+  const FIREBASE_DB_URL = "https://premier-league-guesses-default-rtdb.europe-west1.firebasedatabase.app";
+  const LEAGUE_PATH = `${FIREBASE_DB_URL}/league`;
 
-  const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
-
-  function b64EncodeUnicode(str) {
-    return btoa(unescape(encodeURIComponent(str)));
-  }
-  function b64DecodeUnicode(str) {
-    return decodeURIComponent(escape(atob(str.replace(/\n/g, ""))));
-  }
-
-  let currentFileSha = null;
-
-  async function loadLeague() {
+  async function fetchJson(url, options = {}, attempt = 1) {
     try {
-      const res = await fetch(`${GITHUB_API_URL}?ref=${GITHUB_BRANCH}`, {
-        headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github+json" },
-        cache: "no-store"
-      });
-
-      if (res.status === 404) {
-        // File genuinely doesn't exist yet — first time this league has ever loaded.
-        state = cloneData(defaultState);
-        currentFileSha = null;
-        markDirty("Saved", true);
-        return { ok: true };
-      }
-
+      const res = await fetch(url, { cache: "no-store", ...options });
       if (!res.ok) {
-        let reason = "status " + res.status;
-        try {
-          const errBody = await res.json();
-          if (errBody && errBody.message) reason += ": " + errBody.message;
-        } catch (e) { /* ignore */ }
-        return { ok: false, reason };
-      }
-
-      const data = await res.json();
-      currentFileSha = data.sha;
-      const parsed = JSON.parse(b64DecodeUnicode(data.content));
-      if (Array.isArray(parsed.players) && Array.isArray(parsed.fixtures)) {
-        if (!Array.isArray(parsed.messages)) parsed.messages = [];
-        state = parsed;
-      } else {
-        state = cloneData(defaultState);
-      }
-      return { ok: true };
-    } catch (e) {
-      console.error("Couldn't load league data from GitHub:", e);
-      return { ok: false, reason: e.message || "network error" };
-    }
-  }
-
-  async function persistLeague(attempt = 1) {
-    try {
-      const body = {
-        message: `League update ${new Date().toISOString()}`,
-        content: b64EncodeUnicode(JSON.stringify(state)),
-        branch: GITHUB_BRANCH
-      };
-      if (currentFileSha) body.sha = currentFileSha;
-
-      const res = await fetch(GITHUB_API_URL, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${GITHUB_TOKEN}`,
-          Accept: "application/vnd.github+json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-
-      if ((res.status === 409 || res.status === 422) && attempt < 4) {
-        // Someone else saved in between — pick up their latest sha and retry,
-        // with a short backoff so we don't just collide again immediately.
-        await new Promise(r => setTimeout(r, 300 * attempt));
-        const fresh = await fetch(`${GITHUB_API_URL}?ref=${GITHUB_BRANCH}`, {
-          headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github+json" },
-          cache: "no-store"
-        });
-        if (fresh.ok) currentFileSha = (await fresh.json()).sha;
-        return persistLeague(attempt + 1);
-      }
-
-      if (!res.ok) {
-        let reason = "status " + res.status;
-        try {
-          const errBody = await res.json();
-          if (errBody && errBody.message) reason += ": " + errBody.message;
-        } catch (e) { /* ignore, keep the plain status */ }
-        return { ok: false, reason };
-      }
-
-      const data = await res.json();
-      currentFileSha = data.content.sha;
-      return { ok: true };
-    } catch (e) {
-      console.error("Couldn't save to GitHub:", e);
-      return { ok: false, reason: e.message || "network error" };
-    }
-  }
-
-  // ---------- Message board: always saves against the freshest remote data ----------
-  //
-  // Predictions/results use the debounced save queue below, which is fine
-  // since edits from the same person are rare and close together. Chat
-  // messages are more likely to land close together across different
-  // people, so posting/deleting always re-fetches the latest data first and
-  // merges the change in, rather than risking overwriting someone else's
-  // message with a stale local copy.
-
-  const MAX_MESSAGES = 200;
-
-  async function mutateRemoteState(mutatorFn, attempt = 1) {
-    try {
-      const res = await fetch(`${GITHUB_API_URL}?ref=${GITHUB_BRANCH}`, {
-        headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github+json" },
-        cache: "no-store"
-      });
-
-      let freshState = cloneData(defaultState);
-      let sha = null;
-      if (res.status === 404) {
-        freshState = cloneData(defaultState);
-        sha = null;
-      } else if (res.ok) {
-        const data = await res.json();
-        sha = data.sha;
-        const parsed = JSON.parse(b64DecodeUnicode(data.content));
-        if (Array.isArray(parsed.players) && Array.isArray(parsed.fixtures)) {
-          if (!Array.isArray(parsed.messages)) parsed.messages = [];
-          freshState = parsed;
+        if (attempt < 3) {
+          await new Promise(r => setTimeout(r, 400 * attempt));
+          return fetchJson(url, options, attempt + 1);
         }
-      } else {
         return { ok: false, reason: "status " + res.status };
       }
-
-      mutatorFn(freshState);
-
-      const body = {
-        message: `Message board update ${new Date().toISOString()}`,
-        content: b64EncodeUnicode(JSON.stringify(freshState)),
-        branch: GITHUB_BRANCH
-      };
-      if (sha) body.sha = sha;
-
-      const putRes = await fetch(GITHUB_API_URL, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${GITHUB_TOKEN}`,
-          Accept: "application/vnd.github+json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-
-      if ((putRes.status === 409 || putRes.status === 422) && attempt < 4) {
-        await new Promise(r => setTimeout(r, 300 * attempt));
-        return mutateRemoteState(mutatorFn, attempt + 1);
-      }
-      if (!putRes.ok) return { ok: false, reason: "status " + putRes.status };
-
-      const putData = await putRes.json();
-      state = freshState;
-      currentFileSha = putData.content.sha;
-      return { ok: true };
+      const data = await res.json();
+      return { ok: true, data };
     } catch (e) {
-      console.error("Message board save failed:", e);
+      if (attempt < 3) {
+        await new Promise(r => setTimeout(r, 400 * attempt));
+        return fetchJson(url, options, attempt + 1);
+      }
       return { ok: false, reason: e.message || "network error" };
     }
   }
+
+  // Firebase can hand back a stored array as a plain object with numeric
+  // string keys ("0","1","2"...) instead of a true JSON array — a known
+  // quirk of the Realtime Database. Checking only Array.isArray() missed
+  // this and silently fell back to blank defaults. This normalizes either
+  // shape back into a real array.
+  function firebaseValueToArray(value) {
+    if (Array.isArray(value)) return value;
+    if (value && typeof value === "object") {
+      return Object.keys(value)
+        .sort((a, b) => Number(a) - Number(b))
+        .map(k => value[k]);
+    }
+    return [];
+  }
+
+  async function loadLeague() {
+    const playersResult = await fetchJson(`${LEAGUE_PATH}/players.json`);
+    const fixturesResult = await fetchJson(`${LEAGUE_PATH}/fixtures.json`);
+    const messagesResult = await fetchJson(`${LEAGUE_PATH}/messages.json`);
+
+    if (!playersResult.ok) return { ok: false, reason: playersResult.reason };
+    if (!fixturesResult.ok) return { ok: false, reason: fixturesResult.reason };
+
+    const playersArr = firebaseValueToArray(playersResult.data);
+    const fixturesArr = firebaseValueToArray(fixturesResult.data);
+
+    const hadPlayers = playersArr.length > 0;
+    const hadFixtures = fixturesArr.length > 0;
+
+    const players = hadPlayers ? playersArr : cloneData(defaultState.players);
+    // Firebase silently omits empty objects/strings when storing, so a
+    // fixture nobody's predicted on yet can come back with `predictions`
+    // (and even `actualHome`/`actualAway`) missing entirely rather than
+    // present-but-empty. Normalize every fixture so the rest of the app can
+    // always safely assume these fields exist.
+    const fixtures = (hadFixtures ? fixturesArr : cloneData(defaultState.fixtures)).map(f => ({
+      ...f,
+      actualHome: f.actualHome ?? "",
+      actualAway: f.actualAway ?? "",
+      predictions: f.predictions && typeof f.predictions === "object" ? f.predictions : {}
+    }));
+
+    const messagesObj = (messagesResult.ok && messagesResult.data) ? messagesResult.data : {};
+    const messages = Object.keys(messagesObj).map(id => ({ id, ...messagesObj[id] }));
+
+    state = { players, fixtures, messages };
+
+    if (!hadPlayers) markDirty("Saved", true);
+    if (!hadFixtures) markDirty("Saved", true);
+
+    return { ok: true };
+  }
+
+  async function persistLeague() {
+    const playersResult = await fetchJson(`${LEAGUE_PATH}/players.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state.players)
+    });
+    if (!playersResult.ok) return playersResult;
+
+    const fixturesResult = await fetchJson(`${LEAGUE_PATH}/fixtures.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state.fixtures)
+    });
+    if (!fixturesResult.ok) return fixturesResult;
+
+    return { ok: true };
+  }
+
+  // ---------- Message board ----------
+  //
+  // Uses Firebase's push() (POST with an auto-generated key) to append —
+  // naturally safe for concurrent posts from different people, no merge
+  // logic required.
+
+  const MAX_MESSAGES = 200;
 
   async function postMessage(text) {
     const trimmed = text.trim();
     if (!trimmed) return;
-    const message = {
-      id: "msg-" + Date.now() + "-" + Math.random().toString(16).slice(2),
-      author: currentUser,
-      text: trimmed,
-      timestamp: Date.now()
-    };
-    const result = await mutateRemoteState(s => {
-      s.messages.push(message);
-      if (s.messages.length > MAX_MESSAGES) s.messages = s.messages.slice(-MAX_MESSAGES);
+    const message = { author: currentUser, text: trimmed, timestamp: Date.now() };
+
+    const result = await fetchJson(`${LEAGUE_PATH}/messages.json`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(message)
     });
+
+    if (result.ok) {
+      state.messages.push({ id: result.data.name, ...message });
+      if (state.messages.length > MAX_MESSAGES) {
+        const toTrim = state.messages
+          .sort((a, b) => a.timestamp - b.timestamp)
+          .slice(0, state.messages.length - MAX_MESSAGES);
+        for (const m of toTrim) {
+          fetchJson(`${LEAGUE_PATH}/messages/${m.id}.json`, { method: "DELETE" });
+        }
+        state.messages = state.messages.filter(m => !toTrim.includes(m));
+      }
+    }
+
     showToast(result.ok ? "Posted" : `Couldn't post (${result.reason})`);
     renderAll();
   }
 
   async function deleteMessage(id) {
-    const result = await mutateRemoteState(s => {
-      s.messages = s.messages.filter(m => m.id !== id);
-    });
+    const result = await fetchJson(`${LEAGUE_PATH}/messages/${id}.json`, { method: "DELETE" });
+    if (result.ok) state.messages = state.messages.filter(m => m.id !== id);
     showToast(result.ok ? "Message deleted" : `Couldn't delete (${result.reason})`);
     renderAll();
   }
@@ -1631,32 +1573,23 @@
 
   // ---------- Message board polling ----------
   //
-  // GitHub's API has no live push, so this polls in the background and
-  // merges in only the messages array — it never touches players/fixtures,
-  // so it can't disrupt anything you're mid-typing elsewhere in the app.
+  // Firebase's REST API has no live push either, so this still polls — but
+  // only the small /messages node, never players/fixtures, so it can't
+  // disrupt anything you're mid-typing elsewhere in the app.
 
   const MESSAGE_POLL_INTERVAL = 15000;
   let messagePollTimer = null;
 
   async function pollMessages() {
-    try {
-      const res = await fetch(`${GITHUB_API_URL}?ref=${GITHUB_BRANCH}`, {
-        headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github+json" },
-        cache: "no-store"
-      });
-      if (!res.ok) return; // silent — this is a background poll, transient failures aren't worth a toast
+    const result = await fetchJson(`${LEAGUE_PATH}/messages.json`);
+    if (!result.ok) return; // silent — this is a background poll
 
-      const data = await res.json();
-      const parsed = JSON.parse(b64DecodeUnicode(data.content));
-      const freshMessages = Array.isArray(parsed.messages) ? parsed.messages : [];
+    const messagesObj = result.data || {};
+    const freshMessages = Object.keys(messagesObj).map(id => ({ id, ...messagesObj[id] }));
 
-      if (JSON.stringify(freshMessages) !== JSON.stringify(state.messages || [])) {
-        state.messages = freshMessages;
-        currentFileSha = data.sha;
-        renderMessageBoard();
-      }
-    } catch (e) {
-      // silent — background polling shouldn't interrupt the user
+    if (JSON.stringify(freshMessages) !== JSON.stringify(state.messages || [])) {
+      state.messages = freshMessages;
+      renderMessageBoard();
     }
   }
 
@@ -2073,6 +2006,7 @@
         input.addEventListener("input", () => {
           const cleaned = input.value.replace(/[^0-9]/g, "");
           if (input.value !== cleaned) input.value = cleaned;
+          if (!fixture.predictions) fixture.predictions = {};
           if (!fixture.predictions[currentUser]) fixture.predictions[currentUser] = { home: "", away: "" };
           fixture.predictions[currentUser][input.dataset.pfield] = cleaned === "" ? "" : Number(cleaned);
         });
