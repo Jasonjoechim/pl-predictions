@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
@@ -663,7 +662,14 @@
 
     @media (max-width: 640px) {
       .header-inner, main { width: min(100% - 18px, 1400px); }
-      header { padding: 18px 10px 14px; }
+      header { padding: 10px 10px 8px; }
+      h1 { font-size: 1.05rem; letter-spacing: -.02em; line-height: 1.25; }
+      .title-row { gap: 8px; }
+      .score-rules { gap: 6px; }
+      .pill { padding: 5px 9px; font-size: .74rem; }
+      .score-rules .btn-sm { padding: 5px 8px; font-size: .72rem; }
+      nav { margin-top: 8px; gap: 5px; }
+      .tab { padding: 6px 10px; font-size: .82rem; }
       .card { padding: 14px; border-radius: 14px; }
       .fixture-head { grid-template-columns: 1fr; text-align: center; }
       .team.away { text-align: center; }
@@ -706,11 +712,11 @@
     <div class="title-row">
       <div>
         <h1>Premier League 2026–27 Prediction League</h1>
-        <p class="subtitle">Five players. Thirty points for an exact score. Ten points for the correct result.</p>
+        <p class="subtitle hide-mobile">Five players. Thirty points for an exact score. Ten points for the correct result.</p>
       </div>
       <div class="score-rules">
-        <div class="pill">Scoring: exact score = <strong>30 pts</strong></div>
-        <div class="pill">Scoring: correct result = <strong>10 pts</strong></div>
+        <div class="pill hide-mobile">Scoring: exact score = <strong>30 pts</strong></div>
+        <div class="pill hide-mobile">Scoring: correct result = <strong>10 pts</strong></div>
         <div class="pill user-pill" id="currentUserPill">—</div>
         <button class="btn btn-muted btn-sm" id="refreshBtn" type="button">↻ Refresh</button>
         <button class="btn btn-muted btn-sm" id="logoutBtn" type="button">Log out</button>
@@ -728,12 +734,6 @@
 </header>
 
 <main>
-  <div class="card" style="margin-bottom:18px;border-left:5px solid var(--accent-2)">
-    <strong>This league updates live:</strong>
-    Everyone who opens this same web link sees the same predictions, results, and messages —
-    and updates appear automatically the instant someone saves, no need to refresh.
-    The <strong>↻ Refresh</strong> button is just a manual fallback if your connection ever drops.
-  </div>
   <noscript>
     <div class="card" style="margin-bottom:18px;border-left:5px solid var(--danger)">
       JavaScript is disabled in this browser. Enable it to enter predictions.
