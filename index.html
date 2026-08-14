@@ -729,10 +729,10 @@
 
 <main>
   <div class="card" style="margin-bottom:18px;border-left:5px solid var(--accent-2)">
-    <strong>This league syncs over the cloud:</strong>
-    Everyone who opens this same web link sees the same predictions and results.
-    Since there's no live push, tap <strong>↻ Refresh</strong> any time to pull the latest — for example, right after
-    someone else says they've saved a prediction or entered a result.
+    <strong>This league updates live:</strong>
+    Everyone who opens this same web link sees the same predictions, results, and messages —
+    and updates appear automatically the instant someone saves, no need to refresh.
+    The <strong>↻ Refresh</strong> button is just a manual fallback if your connection ever drops.
   </div>
   <noscript>
     <div class="card" style="margin-bottom:18px;border-left:5px solid var(--danger)">
@@ -1571,44 +1571,118 @@
     return new Date(timestamp).toLocaleDateString(undefined, { day: "numeric", month: "short" });
   }
 
-  // ---------- Message board polling ----------
+  // ---------- Live sync (Firebase real-time streaming) ----------
   //
-  // Firebase's REST API has no live push either, so this still polls — but
-  // only the small /messages node, never players/fixtures, so it can't
-  // disrupt anything you're mid-typing elsewhere in the app.
+  // Firebase's REST API natively supports Server-Sent Events — connecting
+  // with EventSource (built into every browser, no extra library) gets a
+  // live push the instant any data changes, instead of waiting on a polling
+  // interval. This covers messages, predictions, and results all going
+  // instant at once.
+  //
+  // Fixtures need care: a live update might arrive while the current user
+  // has typed (but not yet saved) their own predictions. We always keep
+  // their own in-progress values and only take everything else — other
+  // players' predictions, actual results, fixture list changes — from the
+  // live update. Messages and players are simple full replaces.
 
-  const MESSAGE_POLL_INTERVAL = 15000;
-  let messagePollTimer = null;
+  const liveWatchers = [];
 
-  async function pollMessages() {
-    const result = await fetchJson(`${LEAGUE_PATH}/messages.json`);
-    if (!result.ok) return; // silent — this is a background poll
+  function watchLive(path, onEvent) {
+    let source = null;
 
-    const messagesObj = result.data || {};
-    const freshMessages = Object.keys(messagesObj).map(id => ({ id, ...messagesObj[id] }));
-
-    if (JSON.stringify(freshMessages) !== JSON.stringify(state.messages || [])) {
-      state.messages = freshMessages;
-      renderMessageBoard();
+    function connect() {
+      try {
+        source = new EventSource(`${FIREBASE_DB_URL}${path}.json`);
+        source.addEventListener("put", e => {
+          try { onEvent(JSON.parse(e.data)); } catch (err) { console.error("Live update parse error:", err); }
+        });
+        source.addEventListener("patch", e => {
+          try { onEvent(JSON.parse(e.data)); } catch (err) { console.error("Live update parse error:", err); }
+        });
+        source.onerror = () => {
+          // EventSource auto-reconnects on its own; nothing to do here
+          // beyond letting it retry. Avoid spamming the console every drop.
+        };
+      } catch (err) {
+        console.error(`Couldn't start live sync for ${path}:`, err);
+      }
     }
+
+    connect();
+    liveWatchers.push(() => { if (source) source.close(); });
   }
 
-  function startMessagePolling() {
-    if (messagePollTimer) return;
-    messagePollTimer = setInterval(pollMessages, MESSAGE_POLL_INTERVAL);
+  function applyFirebasePatch(current, patch) {
+    if (patch.path === "/") return patch.data;
+    const key = patch.path.replace(/^\//, "").split("/")[0];
+    const next = Array.isArray(current) ? [...current] : { ...(current || {}) };
+    if (patch.data === null) {
+      delete next[key];
+    } else {
+      next[key] = patch.data;
+    }
+    return next;
   }
 
-  function stopMessagePolling() {
-    clearInterval(messagePollTimer);
-    messagePollTimer = null;
+  function mergeLiveFixtures(rawFixtures) {
+    const normalized = firebaseValueToArray(rawFixtures).map(f => ({
+      ...f,
+      actualHome: f.actualHome ?? "",
+      actualAway: f.actualAway ?? "",
+      predictions: f.predictions && typeof f.predictions === "object" ? f.predictions : {}
+    }));
+    // Preserve whatever the current user has typed locally but not yet saved.
+    normalized.forEach(rf => {
+      const localFixture = state.fixtures.find(lf => lf.id === rf.id);
+      if (localFixture && localFixture.predictions && localFixture.predictions[currentUser]) {
+        rf.predictions[currentUser] = localFixture.predictions[currentUser];
+      }
+    });
+    return normalized;
+  }
+
+  let liveFixturesRaw = null;
+  let livePlayersRaw = null;
+  let liveMessagesRaw = null;
+
+  function startLiveSync() {
+    if (liveWatchers.length) return; // already running
+
+    watchLive("/league/players", patch => {
+      livePlayersRaw = applyFirebasePatch(livePlayersRaw, patch);
+      const arr = firebaseValueToArray(livePlayersRaw);
+      if (arr.length > 0) {
+        state.players = arr;
+        renderAll();
+      }
+    });
+
+    watchLive("/league/fixtures", patch => {
+      liveFixturesRaw = applyFirebasePatch(liveFixturesRaw, patch);
+      const merged = mergeLiveFixtures(liveFixturesRaw);
+      if (merged.length > 0) {
+        state.fixtures = merged;
+        renderAll();
+      }
+    });
+
+    watchLive("/league/messages", patch => {
+      liveMessagesRaw = applyFirebasePatch(liveMessagesRaw, patch);
+      const obj = liveMessagesRaw || {};
+      state.messages = Object.keys(obj).map(id => ({ id, ...obj[id] }));
+      renderMessageBoard();
+    });
+  }
+
+  function stopLiveSync() {
+    while (liveWatchers.length) liveWatchers.pop()();
   }
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
-      stopMessagePolling();
+      stopLiveSync();
     } else if (currentUser) {
-      startMessagePolling();
-      pollMessages(); // catch up immediately on returning to the tab
+      startLiveSync();
     }
   });
 
@@ -1738,12 +1812,12 @@
 
     renderTabs();
     renderAll();
-    startMessagePolling();
+    startLiveSync();
   }
 
   function logout() {
     if (hasPendingSave()) flushSave();
-    stopMessagePolling();
+    stopLiveSync();
     currentUser = null;
     document.getElementById("app").style.display = "none";
     document.getElementById("loginScreen").style.display = "flex";
