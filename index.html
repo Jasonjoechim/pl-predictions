@@ -957,6 +957,12 @@
   </section>
 
   <section id="seasonAwards" class="view">
+    <div class="card" id="seasonOverrideCard" style="display:none;border-left:5px solid var(--warning)">
+      <h2>Admin Override</h2>
+      <p class="mini-note" id="seasonOverrideNote"></p>
+      <button class="btn btn-secondary" id="seasonOverrideToggleBtn" type="button"></button>
+    </div>
+
     <div class="card">
       <h2>Season Awards</h2>
       <p class="mini-note" id="seasonAwardsIntro"></p>
@@ -1107,6 +1113,7 @@
   ];
 
   function isSeasonLocked() {
+    if (state.seasonOverrideUnlocked) return false;
     return isGameweekLocked(1);
   }
 
@@ -1516,7 +1523,8 @@
     ],
     messages: [],
     seasonPredictions: {},
-    seasonActuals: {}
+    seasonActuals: {},
+    seasonOverrideUnlocked: false
   };
 
   let state = cloneData(defaultState);
@@ -1613,6 +1621,7 @@
     const messagesResult = await fetchJson(`${LEAGUE_PATH}/messages.json`);
     const seasonPredictionsResult = await fetchJson(`${LEAGUE_PATH}/seasonPredictions.json`);
     const seasonActualsResult = await fetchJson(`${LEAGUE_PATH}/seasonActuals.json`);
+    const seasonOverrideResult = await fetchJson(`${LEAGUE_PATH}/seasonOverrideUnlocked.json`);
 
     if (!playersResult.ok) return { ok: false, reason: playersResult.reason };
     if (!fixturesResult.ok) return { ok: false, reason: fixturesResult.reason };
@@ -1643,8 +1652,9 @@
       ? seasonPredictionsResult.data : {};
     const seasonActuals = (seasonActualsResult.ok && seasonActualsResult.data && typeof seasonActualsResult.data === "object")
       ? seasonActualsResult.data : {};
+    const seasonOverrideUnlocked = !!(seasonOverrideResult.ok && seasonOverrideResult.data);
 
-    state = { players, fixtures, messages, seasonPredictions, seasonActuals };
+    state = { players, fixtures, messages, seasonPredictions, seasonActuals, seasonOverrideUnlocked };
 
     if (!hadPlayers) markDirty("Saved", true);
     if (!hadFixtures) markDirty("Saved", true);
@@ -1680,6 +1690,13 @@
       body: JSON.stringify(state.seasonActuals || {})
     });
     if (!seasonActualsResult.ok) return seasonActualsResult;
+
+    const seasonOverrideResult = await fetchJson(`${LEAGUE_PATH}/seasonOverrideUnlocked.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(!!state.seasonOverrideUnlocked)
+    });
+    if (!seasonOverrideResult.ok) return seasonOverrideResult;
 
     return { ok: true };
   }
@@ -1814,6 +1831,7 @@
   let liveMessagesRaw = null;
   let liveSeasonPredictionsRaw = null;
   let liveSeasonActualsRaw = null;
+  let liveSeasonOverrideRaw = null;
 
   function mergeLiveSeasonPredictions(raw) {
     const obj = (raw && typeof raw === "object") ? raw : {};
@@ -1862,6 +1880,12 @@
     watchLive("/league/seasonActuals", patch => {
       liveSeasonActualsRaw = applyFirebasePatch(liveSeasonActualsRaw, patch);
       state.seasonActuals = (liveSeasonActualsRaw && typeof liveSeasonActualsRaw === "object") ? liveSeasonActualsRaw : {};
+      renderAll();
+    });
+
+    watchLive("/league/seasonOverrideUnlocked", patch => {
+      liveSeasonOverrideRaw = applyFirebasePatch(liveSeasonOverrideRaw, patch);
+      state.seasonOverrideUnlocked = !!liveSeasonOverrideRaw;
       renderAll();
     });
   }
@@ -2582,6 +2606,7 @@
     renderMessageBoard();
     renderSeasonAwards();
     renderSeasonActuals();
+    renderSeasonOverride();
   }
 
   const PL_TEAM_NAMES = [
@@ -2614,6 +2639,29 @@
     }
   }
 
+  function renderSeasonOverride() {
+    const card = document.getElementById("seasonOverrideCard");
+    if (!card) return;
+    const isAdmin = currentUser === ADMIN_NAME;
+    card.style.display = isAdmin ? "block" : "none";
+    if (!isAdmin) return;
+
+    const note = document.getElementById("seasonOverrideNote");
+    const btn = document.getElementById("seasonOverrideToggleBtn");
+    const dateBasedLock = isGameweekLocked(1);
+
+    if (state.seasonOverrideUnlocked) {
+      note.textContent = "Season predictions are manually unlocked right now, overriding the normal Gameweek 1 lock — anyone can still change their picks.";
+      btn.textContent = "Re-lock season predictions";
+    } else if (dateBasedLock) {
+      note.textContent = "Season predictions are locked because Gameweek 1 has started. Use this to unlock them again temporarily — for example, if someone hasn't submitted yet.";
+      btn.textContent = "Unlock season predictions";
+    } else {
+      note.textContent = "Season predictions aren't locked yet — Gameweek 1 hasn't started. This override isn't needed right now.";
+      btn.textContent = "Unlock season predictions";
+    }
+  }
+
   function renderSeasonAwards() {
     const container = document.getElementById("seasonAwardsContainer");
     const intro = document.getElementById("seasonAwardsIntro");
@@ -2623,9 +2671,13 @@
     populateTeamNamesList();
     const locked = isSeasonLocked();
 
-    intro.textContent = locked
-      ? "Predictions are locked now that the season's started — here's what everyone guessed."
-      : "Make your picks before Gameweek 1 kicks off. You won't be able to change them once the season starts.";
+    if (locked) {
+      intro.textContent = "Predictions are locked now that the season's started — here's what everyone guessed.";
+    } else if (state.seasonOverrideUnlocked && isGameweekLocked(1)) {
+      intro.textContent = "The admin has temporarily unlocked season predictions, even though Gameweek 1 has started. Make your changes now.";
+    } else {
+      intro.textContent = "Make your picks before Gameweek 1 kicks off. You won't be able to change them once the season starts.";
+    }
     saveBtn.disabled = locked;
     saveBtn.textContent = locked ? "Season locked" : "Save my predictions";
 
@@ -2769,6 +2821,10 @@
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     markDirty("Final outcomes saved", true);
   };
+  document.getElementById("seasonOverrideToggleBtn").onclick = () => {
+    state.seasonOverrideUnlocked = !state.seasonOverrideUnlocked;
+    markDirty(state.seasonOverrideUnlocked ? "Season predictions unlocked" : "Season predictions re-locked", true);
+  };
   document.getElementById("clearGwResultsBtn").onclick = () => {
     if (!confirm(`Clear all actual results for Gameweek ${selectedGw}?`)) return;
     state.fixtures.filter(f => Number(f.gw) === Number(selectedGw)).forEach(f => {
@@ -2879,6 +2935,7 @@
         if (!imported.messages) imported.messages = [];
         if (!imported.seasonPredictions || typeof imported.seasonPredictions !== "object") imported.seasonPredictions = {};
         if (!imported.seasonActuals || typeof imported.seasonActuals !== "object") imported.seasonActuals = {};
+        if (typeof imported.seasonOverrideUnlocked !== "boolean") imported.seasonOverrideUnlocked = false;
         state = imported;
         selectedGw = 1;
         markDirty("Data imported", true);
