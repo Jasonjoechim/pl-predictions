@@ -1826,12 +1826,7 @@
     return normalized;
   }
 
-  let liveFixturesRaw = null;
-  let livePlayersRaw = null;
-  let liveMessagesRaw = null;
-  let liveSeasonPredictionsRaw = null;
-  let liveSeasonActualsRaw = null;
-  let liveSeasonOverrideRaw = null;
+  let liveLeagueRaw = null;
 
   function mergeLiveSeasonPredictions(raw) {
     const obj = (raw && typeof raw === "object") ? raw : {};
@@ -1843,49 +1838,54 @@
     return next;
   }
 
+  // Applies a Firebase SSE patch at any depth under the listened node —
+  // needed now that one connection covers the whole /league tree instead of
+  // one connection per top-level field.
+  function applyDeepPatch(obj, path, data) {
+    if (path === "/" || path === "") return data;
+    const segments = path.replace(/^\//, "").split("/");
+    const clone = Array.isArray(obj) ? [...obj] : { ...(obj || {}) };
+    let cursor = clone;
+    for (let i = 0; i < segments.length - 1; i++) {
+      const seg = segments[i];
+      cursor[seg] = Array.isArray(cursor[seg]) ? [...cursor[seg]] : { ...(cursor[seg] || {}) };
+      cursor = cursor[seg];
+    }
+    const lastSeg = segments[segments.length - 1];
+    if (data === null || data === undefined) {
+      delete cursor[lastSeg];
+    } else {
+      cursor[lastSeg] = data;
+    }
+    return clone;
+  }
+
+  function deriveStateFromLiveLeague() {
+    const raw = liveLeagueRaw || {};
+
+    const playersArr = firebaseValueToArray(raw.players);
+    if (playersArr.length > 0) state.players = playersArr;
+
+    const fixturesArr = firebaseValueToArray(raw.fixtures);
+    if (fixturesArr.length > 0) state.fixtures = mergeLiveFixtures(fixturesArr);
+
+    const msgObj = raw.messages || {};
+    state.messages = Object.keys(msgObj).map(id => ({ id, ...msgObj[id] }));
+
+    state.seasonPredictions = mergeLiveSeasonPredictions(raw.seasonPredictions);
+    state.seasonActuals = (raw.seasonActuals && typeof raw.seasonActuals === "object") ? raw.seasonActuals : {};
+    state.seasonOverrideUnlocked = !!raw.seasonOverrideUnlocked;
+  }
+
   function startLiveSync() {
     if (liveWatchers.length) return; // already running
 
-    watchLive("/league/players", patch => {
-      livePlayersRaw = applyFirebasePatch(livePlayersRaw, patch);
-      const arr = firebaseValueToArray(livePlayersRaw);
-      if (arr.length > 0) {
-        state.players = arr;
-        renderAll();
-      }
-    });
-
-    watchLive("/league/fixtures", patch => {
-      liveFixturesRaw = applyFirebasePatch(liveFixturesRaw, patch);
-      const merged = mergeLiveFixtures(liveFixturesRaw);
-      if (merged.length > 0) {
-        state.fixtures = merged;
-        renderAll();
-      }
-    });
-
-    watchLive("/league/messages", patch => {
-      liveMessagesRaw = applyFirebasePatch(liveMessagesRaw, patch);
-      const obj = liveMessagesRaw || {};
-      state.messages = Object.keys(obj).map(id => ({ id, ...obj[id] }));
-      renderMessageBoard();
-    });
-
-    watchLive("/league/seasonPredictions", patch => {
-      liveSeasonPredictionsRaw = applyFirebasePatch(liveSeasonPredictionsRaw, patch);
-      state.seasonPredictions = mergeLiveSeasonPredictions(liveSeasonPredictionsRaw);
-      renderSeasonAwards();
-    });
-
-    watchLive("/league/seasonActuals", patch => {
-      liveSeasonActualsRaw = applyFirebasePatch(liveSeasonActualsRaw, patch);
-      state.seasonActuals = (liveSeasonActualsRaw && typeof liveSeasonActualsRaw === "object") ? liveSeasonActualsRaw : {};
-      renderAll();
-    });
-
-    watchLive("/league/seasonOverrideUnlocked", patch => {
-      liveSeasonOverrideRaw = applyFirebasePatch(liveSeasonOverrideRaw, patch);
-      state.seasonOverrideUnlocked = !!liveSeasonOverrideRaw;
+    // One connection for everything, instead of one per field — Firebase's
+    // free tier caps total concurrent connections, and each open tab was
+    // previously using 5 just for this app.
+    watchLive("/league", patch => {
+      liveLeagueRaw = applyDeepPatch(liveLeagueRaw, patch.path, patch.data);
+      deriveStateFromLiveLeague();
       renderAll();
     });
   }
@@ -2989,5 +2989,6 @@
 </script>
 </body>
 </html>
+
 
 
